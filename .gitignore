@@ -1,0 +1,8 @@
+# 编辑器与系统杂物
+Thumbs.db
+.DS_Store
+desktop.ini
+*.log
+
+# 自检时产生的临时文件
+_check.js

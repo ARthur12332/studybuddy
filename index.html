@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>StudyBuddy · 日志笔记</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#5b6cff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StudyBuddy">
+<meta name="description" content="轻量日志笔记：随手记，用 #标签 分类，支持搜索、导出、离线使用。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{
+  --bg:#f4f5f9; --card:#ffffff; --card-2:#fafbfe;
+  --text:#1b1f2a; --muted:#7c8398; --line:#e6e8f0;
+  --brand:#5b6cff; --brand-2:#8a5cff; --brand-soft:#eaecff;
+  --danger:#e5484d; --ok:#2f9e6e;
+  --shadow:0 1px 2px rgba(20,24,40,.05), 0 6px 18px -8px rgba(20,24,40,.16);
+  --radius:16px;
+}
+html[data-theme="dark"]{
+  --bg:#101218; --card:#191c24; --card-2:#1f232d;
+  --text:#e8eaf2; --muted:#8b93a8; --line:#2a2f3c;
+  --brand:#7c8bff; --brand-2:#a77cff; --brand-soft:#232744;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px -10px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:15px/1.6 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  overscroll-behavior-y:none;
+}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:720px;margin:0 auto}
+
+/* ---------- 顶栏 ---------- */
+header{
+  padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;
+  background:linear-gradient(135deg,var(--brand),var(--brand-2));
+  color:#fff;border-radius:0 0 22px 22px;box-shadow:var(--shadow);
+  position:relative;z-index:3;
+}
+.bar{display:flex;align-items:center;gap:10px}
+h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.3px;flex:1}
+h1 small{display:block;font-size:11px;font-weight:400;opacity:.85;letter-spacing:0}
+.icon-btn{
+  width:36px;height:36px;border:0;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.18);color:#fff;font-size:16px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.icon-btn:active{transform:scale(.94)}
+.stat{margin-top:10px;font-size:12px;opacity:.92;display:flex;gap:14px;flex-wrap:wrap}
+.stat b{font-size:14px}
+
+/* ---------- 搜索 / 标签 ---------- */
+.toolbar{padding:12px 16px 4px;background:var(--bg)}
+.search{
+  display:flex;align-items:center;gap:8px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:0 12px;box-shadow:var(--shadow);
+}
+.search svg{flex:0 0 16px;opacity:.45}
+.search input{
+  flex:1;border:0;background:transparent;color:var(--text);
+  font-size:16px;padding:11px 0;outline:none;min-width:0;
+}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--muted);
+  padding:5px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;white-space:nowrap;
+}
+.chip.on{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:600}
+
+/* ---------- 列表 ---------- */
+main{flex:1;overflow-y:auto;padding:6px 16px 18px;-webkit-overflow-scrolling:touch}
+.day{
+  display:flex;align-items:center;gap:10px;
+  margin:16px 0 8px;font-size:12.5px;color:var(--muted);font-weight:600;
+}
+.day::after{content:"";flex:1;height:1px;background:var(--line)}
+.note{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);position:relative;
+  animation:in .18s ease-out;
+}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.note .txt{white-space:pre-wrap;word-break:break-word;margin:0 0 8px}
+.note .txt:last-child{margin-bottom:0}
+.note .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.tag{
+  font-size:11.5px;color:var(--brand);background:var(--brand-soft);
+  border-radius:999px;padding:2px 9px;border:0;cursor:pointer;font-family:inherit;
+}
+.note .foot{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:11.5px}
+.note .foot .sp{flex:1}
+.link{border:0;background:none;color:var(--muted);font-size:11.5px;cursor:pointer;padding:2px 4px;font-family:inherit}
+.link:hover{color:var(--brand)}
+.empty{text-align:center;color:var(--muted);padding:56px 20px;font-size:13.5px;line-height:2}
+.empty b{display:block;font-size:15px;color:var(--text);margin-bottom:6px}
+
+/* ---------- 底部输入 ---------- */
+footer{
+  padding:10px 16px calc(env(safe-area-inset-bottom) + 10px);
+  background:var(--card);border-top:1px solid var(--line);
+  display:flex;gap:10px;align-items:flex-end;
+}
+#composer{
+  flex:1;resize:none;border:1px solid var(--line);border-radius:14px;
+  background:var(--card-2);color:var(--text);padding:11px 13px;
+  font:inherit;font-size:16px;line-height:1.5;outline:none;
+  max-height:132px;min-height:46px;
+}
+#composer:focus{border-color:var(--brand)}
+#send{
+  width:52px;height:46px;border:0;border-radius:14px;cursor:pointer;
+  background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;
+  font-size:15px;font-weight:600;flex:0 0 auto;
+}
+#send:active{transform:scale(.96)}
+#send:disabled{opacity:.45}
+
+/* ---------- 弹层 ---------- */
+dialog{
+  border:0;border-radius:18px;padding:0;width:min(92vw,420px);
+  background:var(--card);color:var(--text);box-shadow:0 20px 60px -12px rgba(0,0,0,.45);
+}
+dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
+.dlg-body{padding:18px 18px 6px}
+.dlg-body h3{margin:0 0 12px;font-size:16px}
+.dlg-body label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 6px}
+.dlg-body textarea,.dlg-body input[type=text]{
+  width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card-2);
+  color:var(--text);padding:10px 12px;font:inherit;font-size:15px;outline:none;resize:vertical;
+}
+.dlg-body textarea{min-height:130px}
+.dlg-actions{display:flex;gap:8px;padding:14px 18px 18px}
+.btn{
+  flex:1;border:1px solid var(--line);background:var(--card-2);color:var(--text);
+  border-radius:12px;padding:11px;font:inherit;font-size:14px;cursor:pointer;
+}
+.btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:transparent;font-weight:600}
+.btn.danger{color:var(--danger)}
+.menu-row{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  border:0;border-bottom:1px solid var(--line);background:none;color:var(--text);
+  padding:14px 18px;font:inherit;font-size:14.5px;cursor:pointer;
+}
+.menu-row:last-child{border-bottom:0;border-radius:0 0 18px 18px}
+.menu-row .em{width:20px;text-align:center}
+.menu-row small{display:block;color:var(--muted);font-size:11.5px}
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);
+  transform:translateX(-50%) translateY(8px);
+  background:rgba(24,28,40,.94);color:#fff;padding:9px 16px;border-radius:999px;
+  font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:99;
+}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+/* ---------- 番茄钟 ---------- */
+#pomoBtn{min-width:52px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+#pomoBtn.live{background:rgba(255,255,255,.34)}
+.pomo{display:flex;flex-direction:column;align-items:center;padding:22px 18px 4px}
+.ring-wrap{position:relative;width:196px;height:196px;margin-bottom:16px}
+.ring{width:196px;height:196px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:10;stroke-linecap:round}
+.ring .bgc{stroke:var(--line)}
+.ring .fg{stroke:url(#pomoGrad);transition:stroke-dashoffset .5s linear}
+.ring-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.ring-mid .num{font-size:38px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.ring-mid .ph{font-size:12.5px;color:var(--muted)}
+.pomo-modes{display:flex;gap:8px;margin-bottom:16px}
+.pomo-actions{display:flex;gap:9px;width:100%;margin-bottom:14px}
+.pomo-actions .btn{padding:13px 0;font-size:15px}
+.pomo-stat{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.9}
+.switch{display:flex;align-items:center;gap:8px;justify-content:center;font-size:12.5px;color:var(--muted);padding:10px 0 2px;text-align:left}
+.switch input{width:16px;height:16px;accent-color:var(--brand);flex:0 0 auto}
+.pomo-custom{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:8px 0 2px}
+.pomo-custom input{
+  width:76px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;
+  background:var(--card-2);color:var(--text);font:inherit;font-size:15px;
+  text-align:center;outline:none;
+}
+.pomo-custom input:focus{border-color:var(--brand)}
+.mini{
+  border:1px solid var(--line);background:var(--card-2);color:var(--text);
+  border-radius:10px;padding:8px 14px;font:inherit;font-size:13.5px;cursor:pointer;
+}
+
+/* ---------- 专注统计 ---------- */
+.stat-body{padding:18px 18px 4px}
+.stat-body h3{margin:0 0 8px;font-size:16px}
+.stat-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--muted);
+}
+.stat-row:last-of-type{border-bottom:0}
+.stat-row b{color:var(--text);font-weight:700}
+.chart{display:flex;gap:6px;height:132px;margin:14px 0 4px}
+.chart .col{flex:1;display:flex;flex-direction:column;height:100%;align-items:center}
+.chart .v{height:15px;line-height:15px;font-size:10.5px;color:var(--muted)}
+.chart .barwrap{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.chart .bar{
+  width:66%;min-height:3px;border-radius:6px 6px 3px 3px;
+  background:linear-gradient(180deg,var(--brand),var(--brand-2));
+}
+.chart .d{height:16px;line-height:16px;font-size:10.5px;color:var(--muted)}
+.chart-cap{text-align:center;font-size:11.5px;color:var(--muted);padding:2px 0 4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="bar">
+      <h1>StudyBuddy<small id="subtitle">随手记 · 用 #标签 分类</small></h1>
+      <button class="icon-btn" id="pomoBtn" title="番茄钟">🍅</button>
+      <button class="icon-btn" id="themeBtn" title="切换深浅色">◐</button>
+      <button class="icon-btn" id="menuBtn" title="更多">⋯</button>
+    </div>
+    <div class="stat">
+      <span>今天 <b id="stToday">0</b> 条</span>
+      <span>共 <b id="stTotal">0</b> 条</span>
+      <span>连续 <b id="stStreak">0</b> 天</span>
+      <span>🍅 今日 <b id="stPomo">0</b> 个</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
+      </svg>
+      <input id="search" type="search" placeholder="搜索内容或标签…" autocomplete="off">
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <main id="list"></main>
+
+  <footer>
+    <textarea id="composer" rows="1" placeholder="记点什么… 例如：复习了信号与系统 #学习"></textarea>
+    <button id="send" disabled>发送</button>
+  </footer>
+</div>
+
+<dialog id="editDlg">
+  <div class="dlg-body">
+    <h3>编辑这条记录</h3>
+    <textarea id="editText"></textarea>
+  </div>
+  <div class="dlg-actions">
+    <button class="btn danger" id="editDel">删除</button>
+    <button class="btn" id="editCancel">取消</button>
+    <button class="btn primary" id="editSave">保存</button>
+  </div>
+</dialog>
+
+<dialog id="menuDlg">
+  <button class="menu-row" data-act="exportJson"><span class="em">⤓</span><span>导出 JSON 备份<small>完整数据，可再导入回来</small></span></button>
+  <button class="menu-row" data-act="exportMd"><span class="em">📄</span><span>导出 Markdown<small>按日期分组，方便放进笔记软件</small></span></button>
+  <button class="menu-row" data-act="import"><span class="em">⤒</span><span>导入 JSON<small>与现有记录合并（重复的会跳过）</small></span></button>
+  <button class="menu-row" data-act="clear"><span class="em">🗑</span><span>清空全部<small>谨慎，建议先导出备份</small></span></button>
+  <button class="menu-row" data-act="close"><span class="em">✕</span><span>关闭</span></button>
+</dialog>
+
+<dialog id="pomoDlg">
+  <div class="pomo">
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="pomoGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#5b6cff"/>
+            <stop offset="1" stop-color="#8a5cff"/>
+          </linearGradient>
+        </defs>
+        <circle class="bgc" cx="60" cy="60" r="54"/>
+        <circle class="fg" id="ringFg" cx="60" cy="60" r="54"
+                stroke-dasharray="339.292" stroke-dashoffset="0"/>
+      </svg>
+      <div class="ring-mid">
+        <div class="num" id="pomoNum">25:00</div>
+        <div class="ph" id="pomoPhase">专注</div>
+      </div>
+    </div>
+
+    <div class="pomo-modes" id="pomoModes">
+      <button class="chip" data-min="15">15 分钟</button>
+      <button class="chip on" data-min="25">25 分钟</button>
+      <button class="chip" data-min="45">45 分钟</button>
+    </div>
+
+    <div class="pomo-custom">
+      <span>自定义专注</span>
+      <input type="number" id="pomoCustom" min="1" max="180" step="5" inputmode="numeric" value="25">
+      <span>分钟</span>
+      <button class="mini" id="pomoCustomSet">设定</button>
+    </div>
+
+    <div class="pomo-actions">
+      <button class="btn primary" id="pomoToggle">开始</button>
+      <button class="btn" id="pomoReset">重置</button>
+      <button class="btn" id="pomoSkip">跳过</button>
+    </div>
+
+    <div class="pomo-stat" id="pomoStat">今日 0 个番茄 · 专注 0 分钟</div>
+    <label class="switch">
+      <input type="checkbox" id="pomoAutoLog" checked>
+      <span>完成一个番茄时，自动往日志里记一条</span>
+    </label>
+  </div>
+  <div class="dlg-actions">
+    <button class="btn" id="pomoStats">专注统计</button>
+    <button class="btn primary" id="pomoClose">关闭</button>
+  </div>
+</dialog>
+
+<dialog id="statDlg">
+  <div class="stat-body">
+    <h3>专注统计</h3>
+    <div id="statRows"></div>
+    <div class="chart" id="statChart"></div>
+    <div class="chart-cap">最近 7 天专注时长（分钟）</div>
+  </div>
+  <div class="dlg-actions">
+    <button class="btn danger" id="statClear">清空统计</button>
+    <button class="btn primary" id="statClose">关闭</button>
+  </div>
+</dialog>
+
+<input type="file" id="fileInput" accept="application/json,.json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+const KEY_NOTES = "studybuddy.notes.v1";
+const KEY_THEME = "studybuddy.theme";
+const KEY_DRAFT = "studybuddy.draft";
+
+const $ = (id) => document.getElementById(id);
+const list = $("list"), chips = $("chips"), composer = $("composer"), send = $("send");
+const searchEl = $("search"), toastEl = $("toast");
+const editDlg = $("editDlg"), editText = $("editText");
+const menuDlg = $("menuDlg"), fileInput = $("fileInput");
+
+/* ---------------- 数据 ---------------- */
+let notes = [];
+let editingId = null;
+let filterTag = "";
+let query = "";
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY_NOTES);
+    notes = raw ? JSON.parse(raw) : [];
+    if(!Array.isArray(notes)) notes = [];
+  }catch(e){ notes = []; }
+  notes.forEach(n => { if(!n.id) n.id = uid(); });
+}
+function persist(){
+  try{ localStorage.setItem(KEY_NOTES, JSON.stringify(notes)); }
+  catch(e){ toast("保存失败：本地存储已满"); }
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+/* ---------------- 工具 ---------------- */
+function parseTags(text){
+  const out = [];
+  const re = /[#＃]([^\s#＃,，、。；;:：!！?？()（）\[\]]+)/g;
+  let m;
+  while((m = re.exec(text)) !== null){
+    const t = m[1].trim();
+    if(t && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+const pad = (n) => String(n).padStart(2, "0");
+const dayKey = (d) => { d = new Date(d); return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); };
+const fmtTime = (iso) => { const d = new Date(iso); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+const WEEK = ["周日","周一","周二","周三","周四","周五","周六"];
+function fmtDay(key){
+  const today = dayKey(new Date());
+  if(key === today) return "今天 · " + key.slice(5).replace("-","月") + "日";
+  const y = new Date(); y.setDate(y.getDate()-1);
+  if(key === dayKey(y)) return "昨天 · " + key.slice(5).replace("-","月") + "日";
+  const [Y,M,D] = key.split("-").map(Number);
+  const d = new Date(Y, M-1, D);
+  return M + "月" + D + "日 " + WEEK[d.getDay()];
+}
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("on");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove("on"), 1900);
+}
+function download(name, text, type){
+  const blob = new Blob([text], {type: type || "text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function stamp(){
+  const d = new Date();
+  return d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes());
+}
+
+/* ---------------- 渲染 ---------------- */
+function visibleNotes(){
+  const q = query.trim().toLowerCase();
+  return notes
+    .filter(n => !filterTag || (n.tags || []).includes(filterTag))
+    .filter(n => {
+      if(!q) return true;
+      return n.text.toLowerCase().includes(q) || (n.tags || []).some(t => t.toLowerCase().includes(q));
+    })
+    .sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+}
+function renderChips(){
+  const count = {};
+  notes.forEach(n => (n.tags || []).forEach(t => count[t] = (count[t]||0)+1));
+  const tags = Object.keys(count).sort((a,b) => count[b]-count[a]).slice(0, 20);
+  chips.innerHTML = "";
+  const mk = (label, value, num) => {
+    const b = document.createElement("button");
+    b.className = "chip" + ((filterTag === value && value !== "") || (value === "" && !filterTag) ? " on" : "");
+    b.textContent = label + (num != null ? " " + num : "");
+    b.onclick = () => { filterTag = value; render(); };
+    chips.appendChild(b);
+  };
+  mk("全部", "", notes.length);
+  tags.forEach(t => mk("#" + t, t, count[t]));
+}
+function renderStats(){
+  const today = dayKey(new Date());
+  $("stToday").textContent = notes.filter(n => dayKey(n.createdAt) === today).length;
+  $("stTotal").textContent = notes.length;
+  // 连续记录天数
+  const days = new Set(notes.map(n => dayKey(n.createdAt)));
+  let streak = 0;
+  const d = new Date();
+  if(!days.has(dayKey(d))) d.setDate(d.getDate() - 1);   // 今天还没写，从昨天算
+  while(days.has(dayKey(d))){ streak++; d.setDate(d.getDate() - 1); }
+  $("stStreak").textContent = streak;
+  if($("stPomo")) $("stPomo").textContent = todayPomo().count;
+}
+function render(){
+  renderStats();
+  renderChips();
+  const arr = visibleNotes();
+  list.innerHTML = "";
+  if(!arr.length){
+    const div = document.createElement("div");
+    div.className = "empty";
+    div.innerHTML = notes.length
+      ? "<b>没有匹配的记录</b>换个关键词或标签试试"
+      : "<b>还没有记录</b>在下面写第一条吧<br>内容里带 #标签 会自动分类<br>例如「背了 50 个单词 #英语」";
+    list.appendChild(div);
+    return;
+  }
+  let lastDay = "";
+  arr.forEach(n => {
+    const k = dayKey(n.createdAt);
+    if(k !== lastDay){
+      const d = document.createElement("div");
+      d.className = "day";
+      d.textContent = fmtDay(k);
+      list.appendChild(d);
+      lastDay = k;
+    }
+    list.appendChild(noteEl(n));
+  });
+}
+function noteEl(n){
+  const card = document.createElement("article");
+  card.className = "note";
+
+  const p = document.createElement("p");
+  p.className = "txt";
+  p.textContent = n.text;
+  card.appendChild(p);
+
+  if(n.tags && n.tags.length){
+    const tg = document.createElement("div");
+    tg.className = "tags";
+    n.tags.forEach(t => {
+      const b = document.createElement("button");
+      b.className = "tag";
+      b.textContent = "#" + t;
+      b.onclick = () => { filterTag = t; searchEl.value = ""; query = ""; render(); };
+      tg.appendChild(b);
+    });
+    card.appendChild(tg);
+  }
+
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  const time = document.createElement("span");
+  time.textContent = fmtTime(n.createdAt) + (n.updatedAt ? " · 已编辑" : "");
+  foot.appendChild(time);
+  const sp = document.createElement("span"); sp.className = "sp"; foot.appendChild(sp);
+  const copy = document.createElement("button");
+  copy.className = "link"; copy.textContent = "复制";
+  copy.onclick = () => {
+    navigator.clipboard?.writeText(n.text).then(() => toast("已复制"), () => toast("复制失败"));
+  };
+  const edit = document.createElement("button");
+  edit.className = "link"; edit.textContent = "编辑";
+  edit.onclick = () => openEdit(n);
+  foot.appendChild(copy); foot.appendChild(edit);
+  card.appendChild(foot);
+  return card;
+}
+
+/* ---------------- 交互 ---------------- */
+function addNote(){
+  const text = composer.value.trim();
+  if(!text) return;
+  notes.push({ id: uid(), text, tags: parseTags(text), createdAt: new Date().toISOString() });
+  persist();
+  composer.value = "";
+  composer.style.height = "auto";
+  localStorage.removeItem(KEY_DRAFT);
+  send.disabled = true;
+  filterTag = ""; query = ""; searchEl.value = "";
+  render();
+  toast("已记录");
+  list.scrollTop = 0;
+}
+function openEdit(n){
+  editingId = n.id;
+  editText.value = n.text;
+  editDlg.showModal();
+  setTimeout(() => editText.focus(), 50);
+}
+
+send.onclick = addNote;
+composer.addEventListener("input", () => {
+  send.disabled = !composer.value.trim();
+  composer.style.height = "auto";
+  composer.style.height = Math.min(composer.scrollHeight, 132) + "px";
+  localStorage.setItem(KEY_DRAFT, composer.value);
+});
+composer.addEventListener("keydown", (e) => {
+  const desktop = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+  if(e.key === "Enter" && !e.shiftKey && desktop){ e.preventDefault(); addNote(); }
+});
+searchEl.addEventListener("input", () => { query = searchEl.value; render(); });
+
+$("editCancel").onclick = () => editDlg.close();
+$("editSave").onclick = () => {
+  const n = notes.find(x => x.id === editingId);
+  if(n){
+    const t = editText.value.trim();
+    if(!t){ toast("内容不能为空"); return; }
+    n.text = t; n.tags = parseTags(t); n.updatedAt = new Date().toISOString();
+    persist(); render(); toast("已保存");
+  }
+  editDlg.close();
+};
+$("editDel").onclick = () => {
+  const n = notes.find(x => x.id === editingId);
+  if(n && confirm("删除这条记录？不可恢复。")){
+    notes = notes.filter(x => x.id !== n.id);
+    persist(); render(); toast("已删除");
+  }
+  editDlg.close();
+};
+
+$("menuBtn").onclick = () => menuDlg.showModal();
+menuDlg.addEventListener("click", (e) => {
+  const row = e.target.closest(".menu-row");
+  if(!row) return;
+  const act = row.dataset.act;
+  if(act === "exportJson"){
+    download("studybuddy-" + stamp() + ".json", JSON.stringify({app:"StudyBuddy", version:1, exportedAt:new Date().toISOString(), notes}, null, 2), "application/json");
+    toast("已导出 JSON");
+  } else if(act === "exportMd"){
+    download("studybuddy-" + stamp() + ".md", toMarkdown(), "text/markdown;charset=utf-8");
+    toast("已导出 Markdown");
+  } else if(act === "import"){
+    fileInput.click();
+  } else if(act === "clear"){
+    if(confirm("确定清空全部 " + notes.length + " 条记录？不可恢复，建议先导出备份。") && confirm("再确认一次：真的要全部删掉吗？")){
+      notes = []; persist(); filterTag = ""; query = ""; searchEl.value = ""; render(); toast("已清空");
+    }
+  }
+  menuDlg.close();
+});
+fileInput.onchange = () => {
+  const f = fileInput.files && fileInput.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const data = JSON.parse(r.result);
+      const arr = Array.isArray(data) ? data : (data.notes || []);
+      const have = new Set(notes.map(n => n.text + "|" + n.createdAt));
+      let added = 0;
+      arr.forEach(x => {
+        if(!x || typeof x.text !== "string") return;
+        const createdAt = x.createdAt || new Date().toISOString();
+        if(have.has(x.text + "|" + createdAt)) return;
+        notes.push({ id: uid(), text: x.text, tags: x.tags && x.tags.length ? x.tags : parseTags(x.text), createdAt, updatedAt: x.updatedAt || null });
+        added++;
+      });
+      persist(); render();
+      toast("导入完成，新增 " + added + " 条");
+    }catch(err){ toast("导入失败：不是有效的 JSON"); }
+    fileInput.value = "";
+  };
+  r.readAsText(f, "utf-8");
+};
+
+/* ---------------- 主题 ---------------- */
+function applyTheme(mode){
+  const dark = mode === "dark" || (mode === "auto" && window.matchMedia("(prefers-color-scheme:dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.querySelector('meta[name=theme-color]').setAttribute("content", dark ? "#101218" : "#5b6cff");
+}
+function initTheme(){
+  let saved = null;
+  try{ saved = localStorage.getItem(KEY_THEME); }catch(e){}
+  applyTheme(saved || "auto");
+  window.matchMedia("(prefers-color-scheme:dark)").addEventListener("change", () => {
+    let cur = null; try{ cur = localStorage.getItem(KEY_THEME); }catch(e){}
+    if(!cur || cur === "auto") applyTheme("auto");
+  });
+  $("themeBtn").onclick = () => {
+    const cur = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    try{ localStorage.setItem(KEY_THEME, cur); }catch(e){}
+    applyTheme(cur);
+    toast(cur === "dark" ? "深色模式" : "浅色模式");
+  };
+}
+
+/* ---------------- 番茄钟 ---------------- */
+const KEY_POMO = "studybuddy.pomodoro.v1";
+const KEY_POMOLOG = "studybuddy.pomolog.v1";
+const LONG_EVERY = 4;                 // 每完成 4 个番茄，休息一次长的
+
+let pomoLog = {};                     // { "2026-09-21": {count, minutes} }
+let pomo = { phase:"focus", focusMin:25, remainMs:25*60000, endAt:0, running:false, cycle:0, autoLog:true };
+let audioCtx = null;
+
+function loadPomo(){
+  try{
+    const s = JSON.parse(localStorage.getItem(KEY_POMO) || "null");
+    if(s && typeof s === "object") Object.assign(pomo, s);
+  }catch(e){}
+  try{
+    const l = JSON.parse(localStorage.getItem(KEY_POMOLOG) || "null");
+    if(l && typeof l === "object") pomoLog = l;
+  }catch(e){}
+  if(!(pomo.remainMs > 0)) pomo.remainMs = phaseTotalMs(pomo.phase);
+}
+function savePomo(){
+  try{
+    localStorage.setItem(KEY_POMO, JSON.stringify({
+      phase:pomo.phase, focusMin:pomo.focusMin, remainMs:pomo.remainMs,
+      endAt:pomo.endAt, running:pomo.running, cycle:pomo.cycle, autoLog:pomo.autoLog
+    }));
+  }catch(e){}
+}
+function savePomoLog(){ try{ localStorage.setItem(KEY_POMOLOG, JSON.stringify(pomoLog)); }catch(e){} }
+
+const phaseMinutes = (p) => p === "focus" ? pomo.focusMin : (p === "short" ? 5 : 15);
+const phaseTotalMs = (p) => phaseMinutes(p) * 60000;
+const phaseName = (p) => p === "focus" ? "专注" : (p === "short" ? "短休息" : "长休息");
+function remainMs(){
+  if(pomo.running) return Math.max(0, pomo.endAt - Date.now());
+  return Math.max(0, pomo.remainMs);
+}
+function mmss(ms){
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return pad(Math.floor(s / 60)) + ":" + pad(s % 60);
+}
+function todayPomo(){
+  const k = dayKey(new Date());
+  return pomoLog[k] || {count:0, minutes:0};
+}
+
+function paintPomo(){
+  const total = phaseTotalMs(pomo.phase), left = remainMs();
+  const pct = total ? (1 - left / total) : 0;
+  const ring = $("ringFg");
+  if(ring) ring.style.strokeDashoffset = String(339.292 * (1 - pct));
+  if($("pomoNum")) $("pomoNum").textContent = mmss(left);
+  if($("pomoPhase")) $("pomoPhase").textContent = phaseName(pomo.phase);
+  if($("pomoToggle")){
+    $("pomoToggle").textContent = pomo.running ? "暂停" : (left < total ? "继续" : "开始");
+  }
+  const btn = $("pomoBtn");
+  if(btn){
+    btn.textContent = pomo.running ? mmss(left) : "🍅";
+    btn.classList.toggle("live", pomo.running);
+    btn.title = pomo.running ? "番茄钟进行中 · " + phaseName(pomo.phase) + " " + mmss(left) : "番茄钟";
+  }
+  const t = todayPomo();
+  if($("stPomo")) $("stPomo").textContent = t.count;
+  if($("pomoStat")) $("pomoStat").textContent = "今日 " + t.count + " 个番茄 · 专注 " + t.minutes + " 分钟";
+  document.querySelectorAll("#pomoModes .chip").forEach((c) => {
+    c.classList.toggle("on", Number(c.dataset.min) === pomo.focusMin);
+  });
+  const ci = $("pomoCustom");
+  if(ci && document.activeElement !== ci) ci.value = String(pomo.focusMin);
+  const cb = $("pomoAutoLog");
+  if(cb) cb.checked = !!pomo.autoLog;
+}
+
+function beep(){
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    audioCtx = audioCtx || new Ctx();
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "sine"; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + 0.95);
+  }catch(e){}
+}
+function notifyPomo(msg){
+  toast(msg);
+  try{ if(navigator.vibrate) navigator.vibrate([220, 90, 220]); }catch(e){}
+  beep();
+  try{
+    if(window.Notification && Notification.permission === "granted"){
+      new Notification("StudyBuddy", { body: msg });
+    }
+  }catch(e){}
+}
+function pomoStart(){
+  if(pomo.running) return;
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(Ctx && !audioCtx) audioCtx = new Ctx();          // 借着用户点击解锁音频
+    if(window.Notification && Notification.permission === "default") Notification.requestPermission();
+  }catch(e){}
+  pomo.endAt = Date.now() + Math.max(1000, pomo.remainMs);
+  pomo.running = true;
+  savePomo(); paintPomo();
+}
+function pomoPause(){
+  if(!pomo.running) return;
+  pomo.remainMs = Math.max(0, pomo.endAt - Date.now());
+  pomo.running = false;
+  savePomo(); paintPomo();
+}
+function setPhase(p){
+  pomo.phase = p;
+  pomo.remainMs = phaseTotalMs(p);
+  pomo.running = false;
+  pomo.endAt = 0;
+  savePomo(); paintPomo();
+}
+function pomoFinish(){
+  const done = pomo.phase;
+  pomo.running = false;
+  pomo.remainMs = 0;
+  if(done === "focus"){
+    const k = dayKey(new Date());
+    const cur = pomoLog[k] || {count:0, minutes:0};
+    pomoLog[k] = {count: cur.count + 1, minutes: cur.minutes + pomo.focusMin};
+    savePomoLog();
+    pomo.cycle = (pomo.cycle || 0) + 1;
+    if(pomo.autoLog){
+      const text = "🍅 完成一个 " + pomo.focusMin + " 分钟专注 #专注";
+      notes.push({ id: uid(), text, tags:["专注"], createdAt: new Date().toISOString() });
+      persist();
+      render();
+    }
+    const next = (pomo.cycle % LONG_EVERY === 0) ? "long" : "short";
+    setPhase(next);
+    notifyPomo("专注完成！休息 " + phaseMinutes(next) + " 分钟");
+  }else{
+    setPhase("focus");
+    notifyPomo("休息结束，继续加油");
+  }
+}
+function pomoTick(){
+  if(pomo.running && pomo.endAt - Date.now() <= 0){ pomoFinish(); return; }
+  paintPomo();
+}
+/* ---- 自定义专注时长 ---- */
+function applyCustomFocus(){
+  const raw = Number($("pomoCustom").value);
+  const v = Math.max(1, Math.min(180, Math.round(raw || 25)));
+  $("pomoCustom").value = String(v);
+  pomo.focusMin = v;
+  if(pomo.phase === "focus"){
+    if(pomo.running){ toast("已设为 " + v + " 分钟，下一个番茄生效"); }
+    else { pomo.remainMs = phaseTotalMs("focus"); toast("专注时长设为 " + v + " 分钟"); }
+  }else{
+    toast("专注时长设为 " + v + " 分钟");
+  }
+  savePomo(); paintPomo();
+}
+
+/* ---- 专注时长统计 ---- */
+function fmtDur(m){
+  m = Math.round(m || 0);
+  if(m < 60) return m + " 分钟";
+  const h = Math.floor(m / 60), r = m % 60;
+  return h + " 小时" + (r ? " " + r + " 分" : "");
+}
+function sumSince(fromKey){
+  let count = 0, minutes = 0;
+  for(const k in pomoLog){
+    if(k >= fromKey){ count += pomoLog[k].count || 0; minutes += pomoLog[k].minutes || 0; }
+  }
+  return {count, minutes};
+}
+function sumAllPomo(){
+  let count = 0, minutes = 0;
+  for(const k in pomoLog){ count += pomoLog[k].count || 0; minutes += pomoLog[k].minutes || 0; }
+  return {count, minutes};
+}
+function startOfWeekKey(){
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));      // 以周一为一周开始
+  return dayKey(d);
+}
+function startOfMonthKey(){
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(1);
+  return dayKey(d);
+}
+function renderStatDlg(){
+  const rows = [
+    ["今日", todayPomo()],
+    ["本周", sumSince(startOfWeekKey())],
+    ["本月", sumSince(startOfMonthKey())],
+    ["累计", sumAllPomo()]
+  ];
+  $("statRows").innerHTML = rows.map((r) =>
+    '<div class="stat-row"><span>' + r[0] + '</span><b>' + r[1].count + " 个 · " + fmtDur(r[1].minutes) + "</b></div>"
+  ).join("");
+
+  const days = [];
+  for(let i = 6; i >= 0; i--){
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - i);
+    const k = dayKey(d);
+    days.push({ d: d, min: (pomoLog[k] && pomoLog[k].minutes) || 0 });
+  }
+  let max = 1;
+  days.forEach((x) => { if(x.min > max) max = x.min; });
+  $("statChart").innerHTML = days.map((x) => {
+    const h = Math.max(3, Math.round(x.min / max * 100));
+    return '<div class="col">' +
+             '<div class="v">' + (x.min ? x.min : "") + '</div>' +
+             '<div class="barwrap"><div class="bar" style="height:' + h + '%"></div></div>' +
+             '<div class="d">' + (x.d.getMonth() + 1) + "/" + x.d.getDate() + '</div>' +
+           '</div>';
+  }).join("");
+}
+
+function initPomo(){
+  loadPomo();
+  const open = () => { paintPomo(); if(!$("pomoDlg").open) $("pomoDlg").showModal(); };
+  $("pomoBtn").onclick = open;
+  $("pomoToggle").onclick = () => { pomo.running ? pomoPause() : pomoStart(); };
+  $("pomoReset").onclick = () => { setPhase(pomo.phase); toast("已重置"); };
+  $("pomoSkip").onclick = () => setPhase(pomo.phase === "focus" ? "short" : "focus");
+  $("pomoClose").onclick = () => $("pomoDlg").close();
+  $("pomoAutoLog").onchange = (e) => { pomo.autoLog = !!e.target.checked; savePomo(); };
+  $("pomoCustomSet").onclick = applyCustomFocus;
+  $("pomoCustom").addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){ e.preventDefault(); applyCustomFocus(); }
+  });
+  $("pomoStats").onclick = () => {
+    if($("pomoDlg").open) $("pomoDlg").close();
+    renderStatDlg();
+    $("statDlg").showModal();
+  };
+  $("statClose").onclick = () => $("statDlg").close();
+  $("statClear").onclick = () => {
+    if(confirm("清空全部专注统计？日志里的记录不受影响。")){
+      pomoLog = {}; savePomoLog(); renderStatDlg(); paintPomo(); toast("统计已清空");
+    }
+  };
+  document.querySelectorAll("#pomoModes .chip").forEach((c) => {
+    c.onclick = () => {
+      pomo.focusMin = Number(c.dataset.min) || 25;
+      $("pomoCustom").value = String(pomo.focusMin);
+      if(pomo.phase === "focus"){ pomo.running = false; pomo.remainMs = phaseTotalMs("focus"); }
+      savePomo(); paintPomo();
+    };
+  });
+  if(pomo.running && pomo.endAt - Date.now() <= 0) pomoFinish();   // 关掉页面期间已经跑完
+  paintPomo();
+  setInterval(pomoTick, 1000);
+}
+
+/* ---------------- 导出 Markdown ---------------- */
+function toMarkdown(){
+  const byDay = {};
+  notes.slice().sort((a,b) => a.createdAt.localeCompare(b.createdAt)).forEach(n => {
+    const k = dayKey(n.createdAt);
+    (byDay[k] = byDay[k] || []).push(n);
+  });
+  let out = "# StudyBuddy 日志\n\n导出时间：" + new Date().toLocaleString("zh-CN") + "　共 " + notes.length + " 条\n\n";
+  Object.keys(byDay).sort().reverse().forEach(k => {
+    out += "## " + k + "\n\n";
+    byDay[k].forEach(n => {
+      out += "- **" + fmtTime(n.createdAt) + "** " + n.text.replace(/\n/g, "  \n  ") + "\n";
+    });
+    out += "\n";
+  });
+  return out;
+}
+
+/* ---------------- 启动 ---------------- */
+function boot(){
+  initTheme();
+  load();
+  try{ const d = localStorage.getItem(KEY_DRAFT); if(d){ composer.value = d; send.disabled = false; } }catch(e){}
+  initPomo();
+  render();
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
+boot();
+})();
+</script>
+</body>
+</html>
