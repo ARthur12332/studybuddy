@@ -126,6 +126,7 @@ footer{
 /* ---------- 弹层 ---------- */
 dialog{
   border:0;border-radius:18px;padding:0;width:min(92vw,420px);
+  max-height:88vh;max-height:88dvh;overflow-y:auto;
   background:var(--card);color:var(--text);box-shadow:0 20px 60px -12px rgba(0,0,0,.45);
 }
 dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
@@ -185,6 +186,25 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
   text-align:center;outline:none;
 }
 .pomo-custom input:focus{border-color:var(--brand)}
+.taskrow{width:100%;padding:0 0 8px}
+.taskrow input{
+  width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card-2);
+  color:var(--text);padding:10px 12px;font:inherit;font-size:15px;outline:none;
+}
+.taskrow input:focus{border-color:var(--brand)}
+.pchips{justify-content:center;padding:0 0 12px}
+.ring-mid .tk{
+  font-size:11px;color:var(--muted);max-width:132px;text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sched-list{max-height:46vh;overflow-y:auto;margin-top:4px}
+.sess{padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.sess:last-child{border-bottom:0}
+.sess .h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sess .h b{font-variant-numeric:tabular-nums}
+.sess .h .du{color:var(--muted);font-size:12px}
+.sess .tk2{color:var(--muted);font-size:12.5px;margin-top:3px;word-break:break-word}
+.sess .day{font-size:12px;color:var(--muted);font-weight:600;margin:12px 0 2px}
 .mini{
   border:1px solid var(--line);background:var(--card-2);color:var(--text);
   border-radius:10px;padding:8px 14px;font:inherit;font-size:13.5px;cursor:pointer;
@@ -334,6 +354,7 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
   <button class="menu-row" data-act="exportMd"><span class="em">📄</span><span>导出 Markdown<small>按日期分组，方便放进笔记软件</small></span></button>
   <button class="menu-row" data-act="import"><span class="em">⤒</span><span>从文件导入<small>与现有记录合并（重复的会跳过）</small></span></button>
   <button class="menu-row" data-act="pasteJson"><span class="em">📥</span><span>从剪贴板导入<small>把之前复制的备份粘回来</small></span></button>
+  <button class="menu-row" data-act="sched"><span class="em">📅</span><span>完成的学习日程<small>每个番茄完成的记录，可按天复盘</small></span></button>
   <button class="menu-row" data-act="goals"><span class="em">🎯</span><span>每日目标设置<small>每天都要做的事，天天重置</small></span></button>
   <button class="menu-row" data-act="subjects"><span class="em">🏷</span><span>科目设置<small>数二 / 英二 / 政治 / 半导体物理</small></span></button>
   <button class="menu-row" data-act="clear"><span class="em">🗑</span><span>清空全部<small>谨慎，建议先备份</small></span></button>
@@ -357,10 +378,16 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
       <div class="ring-mid">
         <div class="num" id="pomoNum">25:00</div>
         <div class="ph" id="pomoPhase">专注</div>
+        <div class="tk" id="pomoTaskShow"></div>
       </div>
     </div>
 
     <div class="subjbar psubj" id="pomoSubj"></div>
+
+    <div class="taskrow">
+      <input type="text" id="pomoTask" placeholder="这次专注做什么？例如：极限 30 题（可留空）" autocomplete="off">
+    </div>
+    <div class="chips pchips" id="pomoRecent"></div>
 
     <div class="pomo-modes" id="pomoModes">
       <button class="chip" data-min="15">15 分钟</button>
@@ -388,8 +415,22 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
     </label>
   </div>
   <div class="dlg-actions">
+    <button class="btn" id="pomoSched">学习日程</button>
     <button class="btn" id="pomoStats">专注统计</button>
     <button class="btn primary" id="pomoClose">关闭</button>
+  </div>
+</dialog>
+
+<dialog id="schedDlg">
+  <div class="stat-body">
+    <h3>完成的学习日程</h3>
+    <div id="schedRows"></div>
+    <div class="sched-list" id="schedList"></div>
+  </div>
+  <div class="dlg-actions">
+    <button class="btn" id="schedCopy">复制日程</button>
+    <button class="btn danger" id="schedClear">清空</button>
+    <button class="btn primary" id="schedClose">关闭</button>
   </div>
 </dialog>
 
@@ -473,6 +514,8 @@ const KEY_GOALS = "studybuddy.goals.v1";
 const KEY_GOALLOG = "studybuddy.goallog.v1";
 const KEY_LASTSUBJ = "studybuddy.lastsubject";
 const KEY_LASTBK = "studybuddy.lastbackup";
+const KEY_SESS = "studybuddy.sessions.v1";
+const KEY_TASKS = "studybuddy.tasks.v1";
 
 const $ = (id) => document.getElementById(id);
 const list = $("list"), chips = $("chips"), composer = $("composer"), send = $("send");
@@ -491,6 +534,8 @@ let exam = { name: "27 考研初试", date: "2026-12-19" };   // 倒计时目标
 let subjects = ["政治", "英语二", "数学二", "半导体物理", "其他"];
 let goals = [];
 let goalLog = {};                                        // { "2026-09-22": { goalId:true } }
+let sessions = [];                                       // 完成的专注记录
+let recentTasks = [];                                    // 最近用过的任务名
 
 const DEFAULT_GOALS = [
   { text: "背单词 1 个 unit", subj: "英语二" },
@@ -533,7 +578,22 @@ function loadExtra(){
     goals = (Array.isArray(g) && g.length) ? g.filter(x => x && x.text).map(x => ({ id: x.id || uid(), text: x.text, subj: x.subj || "" })) : mkDefaults();
   }catch(e){ goals = mkDefaults(); }
   try{ const gl = JSON.parse(localStorage.getItem(KEY_GOALLOG) || "null"); if(gl && typeof gl === "object") goalLog = gl; }catch(e){}
+  try{
+    const ss = JSON.parse(localStorage.getItem(KEY_SESS) || "null");
+    sessions = Array.isArray(ss) ? ss.filter(x => x && x.minutes) : [];
+  }catch(e){ sessions = []; }
+  try{
+    const rt = JSON.parse(localStorage.getItem(KEY_TASKS) || "null");
+    recentTasks = Array.isArray(rt) ? rt.filter(x => typeof x === "string") : [];
+  }catch(e){ recentTasks = []; }
   try{ pickSubj = localStorage.getItem(KEY_LASTSUBJ) || ""; }catch(e){}
+}
+function saveSessions(){ saveRaw(KEY_SESS, sessions); }
+function rememberTask(name){
+  const t = (name || "").trim();
+  if(!t) return;
+  recentTasks = [t].concat(recentTasks.filter(x => x !== t)).slice(0, 6);
+  saveRaw(KEY_TASKS, recentTasks);
 }
 
 /* ---------------- 工具 ---------------- */
@@ -796,6 +856,8 @@ menuDlg.addEventListener("click", (e) => {
     toast("已导出 Markdown");
   } else if(act === "pasteJson"){
     pasteImport();
+  } else if(act === "sched"){
+    openSched();
   } else if(act === "goals"){
     openGoals();
   } else if(act === "subjects"){
@@ -845,7 +907,7 @@ const KEY_POMOLOG = "studybuddy.pomolog.v1";
 const LONG_EVERY = 4;                 // 每完成 4 个番茄，休息一次长的
 
 let pomoLog = {};                     // { "2026-09-21": {count, minutes} }
-let pomo = { phase:"focus", focusMin:25, remainMs:25*60000, endAt:0, running:false, cycle:0, autoLog:true };
+let pomo = { phase:"focus", focusMin:25, remainMs:25*60000, endAt:0, running:false, cycle:0, autoLog:true, subj:"", task:"" };
 let audioCtx = null;
 
 function loadPomo(){
@@ -859,13 +921,14 @@ function loadPomo(){
   }catch(e){}
   if(!(pomo.remainMs > 0)) pomo.remainMs = phaseTotalMs(pomo.phase);
   if(typeof pomo.subj !== "string") pomo.subj = pickSubj || "";
+  if(typeof pomo.task !== "string") pomo.task = "";
 }
 function savePomo(){
   try{
     localStorage.setItem(KEY_POMO, JSON.stringify({
       phase:pomo.phase, focusMin:pomo.focusMin, remainMs:pomo.remainMs,
       endAt:pomo.endAt, running:pomo.running, cycle:pomo.cycle, autoLog:pomo.autoLog,
-      subj:pomo.subj || ""
+      subj:pomo.subj || "", task:pomo.task || ""
     }));
   }catch(e){}
 }
@@ -913,6 +976,13 @@ function paintPomo(){
   if(ci && document.activeElement !== ci) ci.value = String(pomo.focusMin);
   const cb = $("pomoAutoLog");
   if(cb) cb.checked = !!pomo.autoLog;
+  const ti = $("pomoTask");
+  if(ti && document.activeElement !== ti) ti.value = pomo.task || "";
+  const ts = $("pomoTaskShow");
+  if(ts) ts.textContent = (pomo.phase === "focus" && (pomo.task || "").trim()) ? pomo.task.trim() : "";
+  const rk = recentTasks.join("|");
+  const rc = $("pomoRecent");
+  if(rc && rc.dataset.k !== rk){ rc.dataset.k = rk; renderRecentTasks(); }
 }
 
 function beep(){
@@ -977,9 +1047,20 @@ function pomoFinish(){
     sub[sname] = {count: cs.count + 1, minutes: cs.minutes + pomo.focusMin};
     pomoLog[k] = {count: cur.count + 1, minutes: cur.minutes + pomo.focusMin, subj: sub};
     savePomoLog();
+    const taskName = (pomo.task || "").trim();
+    const endedAt = new Date();
+    sessions.push({
+      id: uid(), day: k,
+      start: new Date(endedAt.getTime() - pomo.focusMin * 60000).toISOString(),
+      end: endedAt.toISOString(),
+      minutes: pomo.focusMin, subj: sname, task: taskName
+    });
+    saveSessions();
+    rememberTask(taskName);
     pomo.cycle = (pomo.cycle || 0) + 1;
     if(pomo.autoLog){
-      const text = "🍅 完成一个 " + pomo.focusMin + " 分钟专注" + (sname ? " · " + sname : "") + " #专注";
+      const text = "🍅 " + pomo.focusMin + " 分钟专注" + (sname ? " · " + sname : "") +
+                   (taskName ? " · " + taskName : "") + " #专注";
       notes.push({ id: uid(), text, tags:["专注"], subj: sname, createdAt: new Date().toISOString() });
       persist();
       render();
@@ -1087,6 +1168,8 @@ function initPomo(){
     renderStatDlg();
     $("statDlg").showModal();
   };
+  $("pomoSched").onclick = openSched;
+  $("pomoTask").addEventListener("input", (e) => { pomo.task = e.target.value; savePomo(); paintPomo(); });
   $("statClose").onclick = () => $("statDlg").close();
   $("statClear").onclick = () => {
     if(confirm("清空全部专注统计？日志里的记录不受影响。")){
@@ -1421,6 +1504,99 @@ function importData(text){
     toast("导入失败：内容不是有效的备份 JSON");
   }
 }
+/* ---------------- 完成的学习日程 ---------------- */
+function renderRecentTasks(){
+  const box = $("pomoRecent"); if(!box) return;
+  box.innerHTML = "";
+  recentTasks.slice(0, 5).forEach(t => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = t;
+    b.onclick = () => { pomo.task = t; savePomo(); paintPomo(); };
+    box.appendChild(b);
+  });
+}
+function schedToday(){
+  const k = dayKey(new Date());
+  const arr = sessions.filter(s => s.day === k);
+  return { count: arr.length, minutes: arr.reduce((a, s) => a + (s.minutes || 0), 0) };
+}
+function schedAll(){
+  return { count: sessions.length, minutes: sessions.reduce((a, s) => a + (s.minutes || 0), 0) };
+}
+function hhmm(iso){
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "--:--" : pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+function renderSched(){
+  if(!$("schedRows")) return;
+  const t = schedToday(), all = schedAll();
+  $("schedRows").innerHTML =
+    '<div class="stat-row"><span>今日已完成</span><b>' + t.count + " 个 · " + fmtDur(t.minutes) + "</b></div>" +
+    '<div class="stat-row"><span>累计已完成</span><b>' + all.count + " 个 · " + fmtDur(all.minutes) + "</b></div>";
+
+  const box = $("schedList");
+  if(!sessions.length){
+    box.innerHTML = '<div class="sess"><div class="tk2">还没有完成的番茄。开一个番茄钟、给它起个名字，完成后这里会自动记下时间、时长和科目。</div></div>';
+    return;
+  }
+  const byDay = {};
+  sessions.forEach(s => {
+    const k = s.day || dayKey(s.start || new Date());
+    (byDay[k] = byDay[k] || []).push(s);
+  });
+  let html = "", shown = 0;
+  Object.keys(byDay).sort().reverse().forEach(k => {
+    if(shown >= 60) return;
+    const rows = byDay[k].sort((a, b) => (b.start || "").localeCompare(a.start || ""));
+    html += '<div class="day">' + fmtDay(k) + " · " + rows.length + " 个</div>";
+    rows.forEach(s => {
+      if(shown >= 60) return;
+      shown++;
+      html += '<div class="sess"><div class="h">' +
+              "<b>" + hhmm(s.start) + "–" + hhmm(s.end) + "</b>" +
+              '<span class="du">' + (s.minutes || 0) + " 分钟</span>" +
+              (s.subj ? '<span class="badge"><span class="dot" style="background:' + subjColor(s.subj) + '"></span>' + esc(s.subj) + "</span>" : "") +
+              "</div>" +
+              (s.task ? '<div class="tk2">' + esc(s.task) + "</div>" : "") +
+              "</div>";
+    });
+  });
+  if(shown < sessions.length) html += '<div class="chart-cap">只显示最近 60 条，共 ' + sessions.length + " 条</div>";
+  box.innerHTML = html;
+}
+function schedText(){
+  if(!sessions.length) return "还没有完成的学习记录。";
+  const byDay = {};
+  sessions.forEach(s => { const k = s.day || dayKey(s.start || new Date()); (byDay[k] = byDay[k] || []).push(s); });
+  let out = "StudyBuddy 完成的学习日程\n";
+  Object.keys(byDay).sort().reverse().forEach(k => {
+    const rows = byDay[k].sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+    const mins = rows.reduce((a, s) => a + (s.minutes || 0), 0);
+    out += "\n【" + k + "】" + rows.length + " 个 · " + fmtDur(mins) + "\n";
+    rows.forEach(s => {
+      out += "  " + hhmm(s.start) + "-" + hhmm(s.end) + "  " + (s.minutes || 0) + " 分钟" +
+             (s.subj ? "  " + s.subj : "") + (s.task ? "  " + s.task : "") + "\n";
+    });
+  });
+  const a = schedAll();
+  out += "\n合计：" + a.count + " 个 · " + fmtDur(a.minutes) + "\n";
+  return out;
+}
+async function copySched(){
+  const txt = schedText();
+  try{ await navigator.clipboard.writeText(txt); toast("日程已复制到剪贴板"); }
+  catch(e){
+    download("studybuddy-schedule-" + stamp() + ".txt", txt, "text/plain;charset=utf-8");
+    toast("剪贴板不可用，已改为下载文件");
+  }
+}
+function openSched(){
+  if($("pomoDlg").open) $("pomoDlg").close();
+  renderSched();
+  $("schedDlg").showModal();
+}
+
 function initExtra(){
   renderSubjBar(); renderPomoSubj(); renderExam(); renderBackupTip();
   $("examStrip").onclick = openExam;
@@ -1432,6 +1608,14 @@ function initExtra(){
   $("subjClose").onclick = () => { $("subjDlg").close(); render(); };
   $("subjAdd").onclick = addSubject;
   $("subjNew").addEventListener("keydown", (e) => { if(e.key === "Enter"){ e.preventDefault(); addSubject(); } });
+  $("schedClose").onclick = () => $("schedDlg").close();
+  $("schedCopy").onclick = copySched;
+  $("schedClear").onclick = () => {
+    if(!sessions.length){ toast("本来就是空的"); return; }
+    if(!confirm("清空全部学习日程记录？日志和番茄统计不受影响。")) return;
+    if(!confirm("再确认一次：删除这 " + sessions.length + " 条完成记录？")) return;
+    sessions = []; saveSessions(); renderSched(); toast("已清空日程");
+  };
 }
 
 /* ---------------- 启动 ---------------- */
