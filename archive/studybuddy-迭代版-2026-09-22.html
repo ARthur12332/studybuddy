@@ -3,19 +3,22 @@
 <head>
 <meta charset="utf-8">
 <title>StudyBuddy · 日志笔记</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#5b6cff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="StudyBuddy">
 <meta name="description" content="轻量日志笔记：随手记，用 #标签 分类，支持搜索、导出、离线使用。">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<!-- 单文件应用：图标与 manifest 全部内联，不依赖任何外部文件。
+     外链 manifest.webmanifest / icons/*.png 在单文件部署下必然 404，
+     既污染控制台、也让「添加到主屏」拿不到图标。这里改成一个内联 SVG 图标，
+     manifest 由脚本用 Blob 动态生成后再挂上去（见 initManifest()）。 -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b6cff'/%3E%3Cpath d='M20 44V20h6l6 12 6-12h6v24h-5V29l-5 10h-4l-5-10v15z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%235b6cff'/%3E%3Cpath d='M56 124V56h17l17 34 17-34h17v68h-14V82l-14 28h-12l-14-28v42z' fill='%23fff'/%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#f4f5f9; --card:#ffffff; --card-2:#fafbfe;
-  --text:#1b1f2a; --muted:#7c8398; --line:#e6e8f0;
+  --text:#1b1f2a; --muted:#676f85; --line:#e6e8f0;
   --brand:#5b6cff; --brand-2:#8a5cff; --brand-soft:#eaecff;
   --danger:#e5484d; --ok:#2f9e6e;
   --shadow:0 1px 2px rgba(20,24,40,.05), 0 6px 18px -8px rgba(20,24,40,.16);
@@ -26,6 +29,25 @@ html[data-theme="dark"]{
   --text:#e8eaf2; --muted:#8b93a8; --line:#2a2f3c;
   --brand:#7c8bff; --brand-2:#a77cff; --brand-soft:#232744;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px -10px rgba(0,0,0,.6);
+}
+/* 全屏倒计时主题：默认深色沉浸，浅色模式下自动切换 */
+:root{
+  --pf-bg:radial-gradient(120% 90% at 50% 0%, #1b1f3a 0%, #0d0f18 62%, #08090e 100%);
+  --pf-text:#ffffff;
+  --pf-muted:#a9b1d0;
+  --pf-line:rgba(255,255,255,.18);
+  --pf-btn-bg:rgba(255,255,255,.07);
+  --pf-ring-bg:rgba(255,255,255,.13);
+  --pf-num-shadow:0 6px 40px rgba(91,108,255,.45);
+}
+html[data-theme="light"]{
+  --pf-bg:radial-gradient(120% 90% at 50% 0%, #ffffff 0%, #eef0f8 58%, #e2e5f2 100%);
+  --pf-text:#151a28;
+  --pf-muted:#5c6480;
+  --pf-line:rgba(21,26,40,.14);
+  --pf-btn-bg:rgba(255,255,255,.72);
+  --pf-ring-bg:rgba(21,26,40,.1);
+  --pf-num-shadow:0 4px 30px rgba(91,108,255,.28);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -135,10 +157,11 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 .dlg-body label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 6px}
 .dlg-body textarea,.dlg-body input[type=text]{
   width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card-2);
-  color:var(--text);padding:10px 12px;font:inherit;font-size:15px;outline:none;resize:vertical;
+  color:var(--text);padding:10px 12px;font:inherit;font-size:16px;outline:none;resize:vertical;
 }
 .dlg-body textarea{min-height:130px}
 .dlg-actions{display:flex;gap:8px;padding:14px 18px 18px}
+.dlg-actions-col{flex-direction:column}
 .btn{
   flex:1;border:1px solid var(--line);background:var(--card-2);color:var(--text);
   border-radius:12px;padding:11px;font:inherit;font-size:14px;cursor:pointer;
@@ -157,19 +180,119 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
   position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);
   transform:translateX(-50%) translateY(8px);
   background:rgba(24,28,40,.94);color:#fff;padding:9px 16px;border-radius:999px;
-  font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:99;
+  font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:200;
 }
 .toast.on{opacity:1;transform:translateX(-50%)}
+.toast.undobox{
+  display:flex;align-items:center;gap:12px;pointer-events:auto;
+  bottom:calc(env(safe-area-inset-bottom) + 148px);padding:8px 8px 8px 16px;max-width:86vw;
+}
+.toast.undobox button{
+  border:0;border-radius:999px;background:rgba(255,255,255,.24);color:#fff;
+  padding:5px 14px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;flex:0 0 auto;
+}
+.toast.undobox span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loadmore{
+  display:block;width:100%;margin:6px 0 14px;padding:11px;
+  border:1px solid var(--line);border-radius:12px;background:var(--card);
+  color:var(--muted);font:inherit;font-size:13px;cursor:pointer;box-shadow:var(--shadow);
+}
+.loadmore:active{transform:scale(.99)}
 
 /* ---------- 番茄钟 ---------- */
-#pomoBtn{min-width:52px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
-#pomoBtn.live{background:rgba(255,255,255,.34)}
 .pomo{display:flex;flex-direction:column;align-items:center;padding:22px 18px 4px}
-.ring-wrap{position:relative;width:196px;height:196px;margin-bottom:16px}
+.ring-wrap{position:relative;width:196px;height:196px;margin-bottom:16px;cursor:zoom-in;border-radius:50%}
 .ring{width:196px;height:196px;transform:rotate(-90deg)}
 .ring circle{fill:none;stroke-width:10;stroke-linecap:round}
 .ring .bgc{stroke:var(--line)}
 .ring .fg{stroke:url(#pomoGrad);transition:stroke-dashoffset .5s linear}
+.ring-wrap:focus-visible{outline:2px solid var(--brand);outline-offset:4px}
+.zoom-tip{
+  position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+  font-size:11px;color:var(--muted);background:var(--card);
+  padding:2px 9px;border-radius:999px;border:1px solid var(--line);
+  white-space:nowrap;pointer-events:none;opacity:.9;
+}
+.ring-wrap.live .zoom-tip{color:var(--brand);border-color:var(--brand-soft);background:var(--brand-soft)}
+
+/* ---------- 全屏倒计时 ---------- */
+html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
+.pomo-full{
+  position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:0;
+  background:var(--pf-bg);
+  color:var(--pf-text);
+  padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 20px);
+  animation:pfIn .18s ease-out;
+  -webkit-user-select:none;user-select:none;
+  transition:background .25s ease, color .25s ease;
+}
+.pomo-full[hidden]{display:none}
+@keyframes pfIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+
+/* 沉浸模式：开始计时后除数字外全部淡出，点屏幕任意处再唤出 */
+.pf-inner,.pf-tools,.pf-hint{transition:opacity .32s ease, transform .32s ease}
+.pomo-full.pf-zen .pf-side{opacity:0;transform:translateY(8px);pointer-events:none}
+.pomo-full.pf-zen .pf-tools{opacity:0;transform:translateY(14px);pointer-events:none}
+.pomo-full.pf-zen .pf-hint{opacity:0;pointer-events:none}
+.pomo-full.pf-zen .pf-ph{opacity:0}
+.pomo-full.pf-zen .pf-ph,.pf-ph{transition:opacity .32s ease}
+/* 沉浸时给个极淡的提示点，让用户知道点屏幕能唤回按钮 */
+.pomo-full.pf-zen::after{
+  content:"";position:absolute;bottom:calc(env(safe-area-inset-bottom) + 14px);left:50%;
+  width:38px;height:3px;border-radius:99px;background:currentColor;opacity:.16;
+  transform:translateX(-50%);
+}
+.pomo-full:not(.pf-zen)::after{display:none}
+.pomo-full.pf-surfacing::after{display:none}
+
+.pf-inner{
+  flex:1;width:100%;min-height:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+}
+.pf-ring{position:relative;width:min(78vw, 78vh, 560px);height:min(78vw, 78vh, 560px)}
+.pf-ring .ring{width:100%;height:100%}
+.pf-ring .ring circle{stroke-width:6}
+.pf-ring .ring .bgc{stroke:var(--pf-ring-bg)}
+.pf-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pf-num{
+  font-size:min(21vw, 21vh, 168px);font-weight:800;line-height:1;letter-spacing:1px;
+  font-variant-numeric:tabular-nums;text-shadow:var(--pf-num-shadow);
+}
+.pf-ph{margin-top:10px;font-size:min(4.2vw, 18px);color:var(--pf-muted);font-weight:600;letter-spacing:2px}
+.pf-side{text-align:center;max-width:min(92vw, 620px)}
+.pf-task{
+  font-size:min(4.4vw, 18px);color:var(--pf-text);font-weight:600;line-height:1.5;
+  word-break:break-word;white-space:pre-wrap;opacity:.92;
+}
+.pf-task:empty{display:none}
+.pf-meta{margin-top:6px;font-size:min(3.4vw, 13px);color:var(--pf-muted)}
+.pf-tools{
+  flex:0 0 auto;display:flex;gap:9px;flex-wrap:wrap;justify-content:center;
+  width:100%;max-width:560px;padding-top:6px;
+}
+.pf-tool{
+  flex:1 1 0;min-width:76px;border:1px solid var(--pf-line);
+  background:var(--pf-btn-bg);color:var(--pf-text);
+  border-radius:999px;padding:13px 8px;font:inherit;font-size:14px;cursor:pointer;
+}
+.pf-tool:active{transform:scale(.97)}
+.pf-tool.pf-exit{background:linear-gradient(135deg,var(--brand),var(--brand-2));border-color:transparent;font-weight:700;color:#fff}
+.pf-hint{flex:0 0 auto;margin:12px 0 0;font-size:11.5px;color:var(--pf-muted);text-align:center;opacity:.85}
+
+/* 横屏：圆环在左、信息与按钮在右，充分利用宽屏 */
+@media (orientation:landscape) and (max-height:560px){
+  .pomo-full{padding:calc(env(safe-area-inset-top) + 8px) 24px calc(env(safe-area-inset-bottom) + 8px)}
+  .pf-inner{flex-direction:row;gap:min(6vw, 64px)}
+  .pf-ring{width:min(62vh, 46vw);height:min(62vh, 46vw);flex:0 0 auto}
+  .pf-num{font-size:min(17vh, 13vw)}
+  .pf-side{text-align:left;max-width:min(40vw, 420px);flex:1 1 auto}
+  .pf-ph{margin-top:6px;font-size:min(3vh, 14px)}
+  .pf-task{font-size:min(3.6vh, 17px)}
+  .pf-tools{max-width:min(40vw, 420px);gap:7px;padding-top:0}
+  .pf-tool{padding:10px 6px;font-size:13px;min-width:64px}
+  .pf-hint{margin-top:6px}
+}
 .ring-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
 .ring-mid .num{font-size:38px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums}
 .ring-mid .ph{font-size:12.5px;color:var(--muted)}
@@ -182,14 +305,14 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 .pomo-custom{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:8px 0 2px}
 .pomo-custom input{
   width:76px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;
-  background:var(--card-2);color:var(--text);font:inherit;font-size:15px;
+  background:var(--card-2);color:var(--text);font:inherit;font-size:16px;
   text-align:center;outline:none;
 }
 .pomo-custom input:focus{border-color:var(--brand)}
 .taskrow{width:100%;padding:0 0 8px}
 .taskrow input{
   width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card-2);
-  color:var(--text);padding:10px 12px;font:inherit;font-size:15px;outline:none;
+  color:var(--text);padding:10px 12px;font:inherit;font-size:16px;outline:none;
 }
 .taskrow input:focus{border-color:var(--brand)}
 .pchips{justify-content:center;padding:0 0 12px}
@@ -250,7 +373,6 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
   50%{box-shadow:0 10px 26px -8px rgba(91,108,255,1)}
 }
 .pomobar.rest{background:linear-gradient(135deg,#2f9e6e,#57c99a);box-shadow:0 8px 20px -10px rgba(47,158,110,.8)}
-#pomoBtn{min-width:58px;font-size:14px;font-weight:700}
 
 /* ---------- 考试倒计时 ---------- */
 .exam{
@@ -266,9 +388,12 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 .exam.urgent .cd b{color:var(--danger)}
 
 /* ---------- 科目 ---------- */
-.subjbar{display:flex;gap:7px;overflow-x:auto;padding:0 0 9px;scrollbar-width:none}
-.subjbar::-webkit-scrollbar{display:none}
-.psubj{justify-content:center;padding:0 0 12px}
+/* 科目条：允许换行、绝不横向滚动，保证每个科目文字完整可见 */
+.subjbar{display:flex;flex-wrap:wrap;gap:7px;padding:0 0 9px}
+.subjbar .chip{flex:0 0 auto}
+/* 番茄钟弹窗内的科目条：居中排列，两边留白避免首尾被裁切 */
+.psubj{justify-content:center;padding:0 2px 12px}
+.psubj .chip{padding:6px 14px}
 .chip .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
 .chip.subj{color:var(--text)}
 .badge{
@@ -307,7 +432,7 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 .dlg-body select,
 .dlg-body input[type=date]{
   width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card-2);
-  color:var(--text);padding:10px 12px;font:inherit;font-size:15px;outline:none;
+  color:var(--text);padding:10px 12px;font:inherit;font-size:16px;outline:none;
 }
 .dlg-body input+label{margin-top:12px}
 </style>
@@ -318,8 +443,8 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
   <header>
     <div class="bar">
       <h1>StudyBuddy<small id="subtitle">27 考研 · 倒计时 · 分科统计</small></h1>
-      <button class="icon-btn" id="themeBtn" title="切换深浅色">◐</button>
-      <button class="icon-btn" id="menuBtn" title="更多">⋯<span class="thedot" id="bkDot"></span></button>
+      <button class="icon-btn" id="themeBtn" title="切换深浅色" aria-label="切换深浅色主题">◐</button>
+      <button class="icon-btn" id="menuBtn" title="更多" aria-label="更多功能菜单">⋯<span class="thedot" id="bkDot"></span></button>
     </div>
     <div class="stat">
       <span>今天 <b id="stToday">0</b> 条</span>
@@ -346,7 +471,7 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
       </svg>
-      <input id="search" type="search" placeholder="搜索内容或标签…" autocomplete="off">
+      <input id="search" type="search" placeholder="搜索内容或标签…" autocomplete="off" aria-label="搜索笔记内容或标签">
     </div>
     <div class="chips" id="chips"></div>
   </div>
@@ -366,6 +491,8 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
   <div class="dlg-body">
     <h3>编辑这条记录</h3>
     <textarea id="editText"></textarea>
+    <label style="margin-top:12px">科目</label>
+    <select id="editSubj"></select>
   </div>
   <div class="dlg-actions">
     <button class="btn danger" id="editDel">删除</button>
@@ -389,7 +516,8 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 
 <dialog id="pomoDlg">
   <div class="pomo">
-    <div class="ring-wrap">
+    <div class="ring-wrap" id="pomoRingWrap" role="button" tabindex="0"
+         title="点击放大到全屏" aria-label="点击放大到全屏倒计时">
       <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
         <defs>
           <linearGradient id="pomoGrad" x1="0" y1="0" x2="1" y2="1">
@@ -406,6 +534,7 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
         <div class="ph" id="pomoPhase">专注</div>
         <div class="tk" id="pomoTaskShow"></div>
       </div>
+      <span class="zoom-tip" id="zoomTip">点击放大 ⤢</span>
     </div>
 
     <div class="subjbar psubj" id="pomoSubj"></div>
@@ -446,6 +575,42 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
     <button class="btn primary" id="pomoClose">关闭</button>
   </div>
 </dialog>
+
+<!-- 全屏倒计时（独立于 dialog，避开 top-layer 与 polyfill 差异） -->
+<div id="pomoFull" class="pomo-full" hidden aria-hidden="true">
+  <div class="pf-inner">
+    <div class="pf-ring" id="pfRingWrap">
+      <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="pfGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#5b6cff"/>
+            <stop offset="1" stop-color="#8a5cff"/>
+          </linearGradient>
+        </defs>
+        <circle class="bgc" cx="60" cy="60" r="54"/>
+        <circle class="fg" id="pfRingFg" cx="60" cy="60" r="54"
+                stroke-dasharray="339.292" stroke-dashoffset="0" stroke="url(#pfGrad)"/>
+      </svg>
+      <div class="pf-mid">
+        <div class="pf-num" id="pfNum">25:00</div>
+        <div class="pf-ph" id="pfPhase">专注</div>
+      </div>
+    </div>
+    <div class="pf-side">
+      <div class="pf-task" id="pfTask"></div>
+      <div class="pf-meta" id="pfMeta"></div>
+    </div>
+  </div>
+
+  <div class="pf-tools" id="pfTools" aria-hidden="false">
+    <button class="pf-tool" id="pfToggle" type="button">暂停</button>
+    <button class="pf-tool" id="pfSkip" type="button">跳过</button>
+    <button class="pf-tool" id="pfTheme" type="button">浅色</button>
+    <button class="pf-tool" id="pfFullApi" type="button">横屏</button>
+    <button class="pf-tool pf-exit" id="pfExit" type="button">退出全屏</button>
+  </div>
+  <p class="pf-hint" id="pfHint">按 Esc 也可退出 · 点屏幕任意处可呼出按钮</p>
+</div>
 
 <dialog id="schedDlg">
   <div class="stat-body">
@@ -508,6 +673,19 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
   </div>
 </dialog>
 
+<dialog id="delSubjDlg">
+  <div class="dlg-body">
+    <h3>删除科目</h3>
+    <p class="hint" id="delSubjMsg" style="margin-top:0"></p>
+    <p class="hint" style="margin-top:8px">请选择这些笔记的处理方式：</p>
+  </div>
+  <div class="dlg-actions dlg-actions-col">
+    <button class="btn primary" id="delSubjMove">移到「其他」科目</button>
+    <button class="btn" id="delSubjKeep">保留标记（之后在「未分类」里筛选）</button>
+    <button class="btn danger" id="delSubjCancel">放弃删除</button>
+  </div>
+</dialog>
+
 <dialog id="subjDlg">
   <div class="dlg-body">
     <h3>科目设置</h3>
@@ -525,11 +703,76 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 </dialog>
 
 <input type="file" id="fileInput" accept="application/json,.json" hidden>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="toast undobox" id="undoToast" role="status" aria-live="polite">
+  <span id="undoMsg"></span>
+  <button id="undoBtn" type="button">撤销</button>
+</div>
 
 <script>
 (function(){
 "use strict";
+
+/* ---- 老浏览器 <dialog> polyfill（iOS Safari < 15.4 等）：showModal / close / open / ESC ---- */
+(function(){
+  /* 判定要严：部分早期实现有构造函数但没有 showModal，只看 HTMLDialogElement 会误判后直接崩 */
+  const ok = typeof window.HTMLDialogElement !== "undefined" &&
+             window.HTMLDialogElement.prototype &&
+             typeof window.HTMLDialogElement.prototype.showModal === "function" &&
+             typeof window.HTMLDialogElement.prototype.close === "function";
+  if(ok) return;
+  const css = document.createElement("style");
+  css.textContent =
+    "dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;margin:0;z-index:99}" +
+    "dialog[open]{display:block}" +
+    ".dlg-backdrop{position:fixed;inset:0;background:rgba(12,14,22,.5);backdrop-filter:blur(2px);z-index:98}";
+  document.head.appendChild(css);
+  const stack = [];
+  function bind(d){
+    if(d.__dlgPoly) return;
+    d.__dlgPoly = true;
+    d.open = false;
+    let backdrop = null, lastFocus = null;
+    d.showModal = function(){
+      if(d.open) return;
+      lastFocus = document.activeElement;
+      d.open = true;
+      d.setAttribute("open", "");
+      backdrop = document.createElement("div");
+      backdrop.className = "dlg-backdrop";
+      /* 与原生 <dialog> 保持一致的策略：点遮罩不关闭（避免误触丢掉正在编辑的内容），
+         关闭一律靠明确的按钮或 Esc。 */
+      document.body.appendChild(backdrop);
+      document.body.style.overflow = "hidden";
+      stack.push(d);
+      const f = d.querySelector("input,textarea,select,button");
+      if(f) setTimeout(() => { try{ f.focus(); }catch(e){} }, 40);
+    };
+    d.show = function(){
+      if(d.open) return;
+      d.open = true;
+      d.setAttribute("open", "");
+    };
+    d.close = function(){
+      if(!d.open) return;
+      d.open = false;
+      d.removeAttribute("open");
+      if(backdrop){ backdrop.remove(); backdrop = null; }
+      const i = stack.indexOf(d);
+      if(i >= 0) stack.splice(i, 1);
+      if(!stack.length) document.body.style.overflow = "";
+      if(lastFocus && lastFocus.focus){ try{ lastFocus.focus(); }catch(e){} }
+    };
+  }
+  const bindAll = () => document.querySelectorAll("dialog").forEach(bind);
+  bindAll();
+  document.addEventListener("DOMContentLoaded", bindAll);
+  document.addEventListener("keydown", (e) => {
+    if(e.key !== "Escape" || !stack.length) return;
+    stack[stack.length - 1].close();
+    e.preventDefault();
+  });
+})();
 
 const KEY_NOTES = "studybuddy.notes.v1";
 const KEY_THEME = "studybuddy.theme";
@@ -542,6 +785,11 @@ const KEY_LASTSUBJ = "studybuddy.lastsubject";
 const KEY_LASTBK = "studybuddy.lastbackup";
 const KEY_SESS = "studybuddy.sessions.v1";
 const KEY_TASKS = "studybuddy.tasks.v1";
+const KEY_SESS_ARC = "studybuddy.sessions.arc.v1";
+
+const BASE_TITLE = "StudyBuddy · 日志笔记";
+const LIST_STEP = 50;                 // 列表分页：每批渲染条数
+const SESS_KEEP = 400;                // 学习日程保留条数，超出自动归档
 
 const $ = (id) => document.getElementById(id);
 const list = $("list"), chips = $("chips"), composer = $("composer"), send = $("send");
@@ -561,7 +809,9 @@ let subjects = ["政治", "英语二", "数学二", "半导体物理", "其他"]
 let goals = [];
 let goalLog = {};                                        // { "2026-09-22": { goalId:true } }
 let sessions = [];                                       // 完成的专注记录
+let archivedSessions = [];                               // 较早的日程（归档，统计仍计入，备份含全部）
 let recentTasks = [];                                    // 最近用过的任务名
+let syncedRaw = null;                                    // 上次写入/同步过的 notes 快照，用于写前合并判重
 
 const DEFAULT_GOALS = [
   { text: "背单词 1 个 unit", subj: "英语二" },
@@ -572,42 +822,134 @@ const DEFAULT_GOALS = [
 ];
 const SUBJ_HUES = [222, 268, 340, 152, 200, 30, 300, 12];
 
+/* 把任意来源的数据规整成合法形状：缺 text / tags / createdAt 都不该让页面崩掉 */
+function normalizeNote(n){
+  if(!n || typeof n !== "object") return null;
+  const text = typeof n.text === "string" ? n.text : (n.text == null ? "" : String(n.text));
+  let tags = Array.isArray(n.tags) ? n.tags.filter(t => typeof t === "string" && t) : parseTags(text);
+  let createdAt = typeof n.createdAt === "string" ? n.createdAt : "";
+  if(!createdAt || isNaN(new Date(createdAt).getTime())) createdAt = new Date().toISOString();
+  return {
+    id: (n.id && String(n.id)) || uid(),
+    text: text,
+    tags: tags,
+    subj: typeof n.subj === "string" ? n.subj : "",
+    createdAt: createdAt,
+    updatedAt: typeof n.updatedAt === "string" ? n.updatedAt : null
+  };
+}
 function load(){
+  let raw = null;
   try{
-    const raw = localStorage.getItem(KEY_NOTES);
-    notes = raw ? JSON.parse(raw) : [];
-    if(!Array.isArray(notes)) notes = [];
+    raw = localStorage.getItem(KEY_NOTES);
+    const arr = raw ? JSON.parse(raw) : [];
+    notes = Array.isArray(arr) ? arr.map(normalizeNote).filter(Boolean) : [];
   }catch(e){ notes = []; }
-  notes.forEach(n => { if(!n.id) n.id = uid(); });
+  /* 关键：把当前快照记为基准。置 null 会让 persist() 的判重失效，
+     被删掉的记录会被当成“远端新增”吸回来，删除直接失效。 */
+  syncedRaw = raw;
 }
 function persist(){
-  try{ localStorage.setItem(KEY_NOTES, JSON.stringify(notes)); }
-  catch(e){ toast("保存失败：本地存储已满"); }
+  /* 写前合并：先吸收其他标签页新写入、本地还没有的记录，避免全量覆盖造成丢数据。
+     关键：以“上次同步过的快照 syncedRaw”为基准对比，只并入真正的新增，
+     否则刚删掉的记录会被当成“远端新增”又吸回来，删除直接失效。 */
+  try{
+    const raw = localStorage.getItem(KEY_NOTES);
+    if(raw && raw !== syncedRaw){
+      const remote = JSON.parse(raw);
+      if(Array.isArray(remote)){
+        let prevIds = null;
+        try{ prevIds = new Set(JSON.parse(syncedRaw || "[]").map(n => n && n.id)); }catch(e){}
+        const localIds = new Set(notes.map(n => n.id));
+        remote.forEach(n => {
+          if(!n || !n.id) return;
+          if(localIds.has(n.id)) return;
+          if(prevIds && prevIds.has(n.id)) return;   // 我们自己删掉的，不再吸回来
+          /* 远端数据同样过一遍规范化：它可能来自旧版本或别的设备，
+             字段缺失会让当前这次会话里的渲染直接踩空。 */
+          const nn = normalizeNote(n);
+          if(nn) notes.push(nn);
+        });
+      }
+    }
+  }catch(e){}
+  try{
+    const payload = JSON.stringify(notes);
+    localStorage.setItem(KEY_NOTES, payload);
+    syncedRaw = payload;
+  }catch(e){ toast("保存失败：本地存储已满"); }
 }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
   ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+let storageWarnAt = 0;
 function saveRaw(k, v){
-  try{ localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v)); }catch(e){}
+  try{ localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v)); }
+  catch(e){
+    /* 存储写满时不再静默吞掉，节流提醒一次，避免数据悄悄丢 */
+    const now = Date.now();
+    if(now - storageWarnAt > 60000){
+      storageWarnAt = now;
+      toast("本地存储空间不足，部分数据可能没保存；建议尽快导出备份");
+    }
+  }
 }
 function subjColor(name){
-  const i = subjects.indexOf(name);
-  const n = (i < 0 ? SUBJ_HUES.length - 1 : i) % SUBJ_HUES.length;
-  return "hsl(" + SUBJ_HUES[n] + ",68%,58%)";
+  /* 按名字哈希取色：增删科目后颜色不再整体漂移，历史统计图颜色稳定 */
+  if(!name) return "hsl(222,10%,62%)";
+  let h = 0;
+  const s = String(name);
+  for(let i = 0; i < s.length; i++){ h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+  return "hsl(" + SUBJ_HUES[h % SUBJ_HUES.length] + ",68%,58%)";
 }
 function loadExtra(){
-  try{ const ex = JSON.parse(localStorage.getItem(KEY_EXAM) || "null"); if(ex && ex.date) exam = { name: ex.name || exam.name, date: ex.date }; }catch(e){}
-  try{ const sj = JSON.parse(localStorage.getItem(KEY_SUBJ) || "null"); if(Array.isArray(sj) && sj.length) subjects = sj.filter(x => typeof x === "string"); }catch(e){}
+  try{
+    const ex = JSON.parse(localStorage.getItem(KEY_EXAM) || "null");
+    /* 日期格式先过一遍：存储被改坏时别把非法日期读进内存 */
+    if(ex && typeof ex.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(ex.date.trim())){
+      exam = { name: typeof ex.name === "string" && ex.name ? ex.name : exam.name, date: ex.date.trim() };
+    }
+  }catch(e){}
+  try{
+    const sj = JSON.parse(localStorage.getItem(KEY_SUBJ) || "null");
+    /* 过滤非字符串之外，也裁掉超长名字与超量条目：科目条是每次渲染都要重建的，
+       脏数据会让它变慢，超长名字还会把整行撑坏。 */
+    if(Array.isArray(sj) && sj.length){
+      subjects = sj.filter(x => typeof x === "string" && x && x.length <= 24).slice(0, 60);
+    }
+  }catch(e){}
   const mkDefaults = () => DEFAULT_GOALS.map(x => ({ id: uid(), text: x.text, subj: x.subj }));
   try{
     const g = JSON.parse(localStorage.getItem(KEY_GOALS) || "null");
-    goals = (Array.isArray(g) && g.length) ? g.filter(x => x && x.text).map(x => ({ id: x.id || uid(), text: x.text, subj: x.subj || "" })) : mkDefaults();
-  }catch(e){ goals = mkDefaults(); }
+    /* id 会被拼进 data-gid 属性，只收「字母数字下划线短横」这种安全形态；
+       其余一律重新生成，避免被篡改的存储把 HTML 注进属性里。 */
+    const safeId = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(v) ? v : uid();
+    if(Array.isArray(g)){
+      /* 只要是数组就原样读入——包括「空数组」：用户删光目标后，这里若再生成默认值，
+         删掉的目标会「复活」。 */
+      goals = g.filter(x => x && typeof x.text === "string" && x.text)
+               .map(x => ({ id: safeId(x.id), text: x.text, subj: typeof x.subj === "string" ? x.subj : "" }));
+    }else{
+      /* 只有「首次使用 / key 损坏」才生成默认目标，且生成后立刻写回存储，
+         否则默认目标的 id 每次刷新都重新随机，用户对默认目标的打卡记录全对不上、刷新即丢。 */
+      goals = mkDefaults();
+      saveRaw(KEY_GOALS, goals);
+    }
+  }catch(e){ goals = mkDefaults(); saveRaw(KEY_GOALS, goals); }
   try{ const gl = JSON.parse(localStorage.getItem(KEY_GOALLOG) || "null"); if(gl && typeof gl === "object") goalLog = gl; }catch(e){}
+  pruneGoalLog();
   try{
     const ss = JSON.parse(localStorage.getItem(KEY_SESS) || "null");
     sessions = Array.isArray(ss) ? ss.filter(x => x && x.minutes) : [];
   }catch(e){ sessions = []; }
+  try{
+    const ar = JSON.parse(localStorage.getItem(KEY_SESS_ARC) || "null");
+    archivedSessions = Array.isArray(ar) ? ar.filter(x => x && x.minutes) : [];
+  }catch(e){ archivedSessions = []; }
+  /* 历史版本或手工改过的数据可能不是正序，读入后立刻归位，
+     否则 archiveSessions() 会把「最新的」当成「最旧的」归档掉。 */
+  sortSessions();
+  sortArchivedSessions();
   try{
     const rt = JSON.parse(localStorage.getItem(KEY_TASKS) || "null");
     recentTasks = Array.isArray(rt) ? rt.filter(x => typeof x === "string") : [];
@@ -615,6 +957,52 @@ function loadExtra(){
   try{ pickSubj = localStorage.getItem(KEY_LASTSUBJ) || ""; }catch(e){}
 }
 function saveSessions(){ saveRaw(KEY_SESS, sessions); }
+function archiveSessions(){
+  /* 学习日程只增不减，超过保留上限的最旧记录自动归档，防止 localStorage 被撑爆。
+     sessions 按时间正序追加，所以要归档的是**最早**的部分，保留最近 SESS_KEEP 条。 */
+  if(sessions.length <= SESS_KEEP) return 0;
+  const keepFrom = sessions.length - SESS_KEEP;
+  const cut = sessions.slice(0, keepFrom);      // 较早的 → 归档
+  sessions = sessions.slice(keepFrom);          // 最近的 → 留在列表里
+  archivedSessions = cut.concat(archivedSessions);
+  saveRaw(KEY_SESS_ARC, archivedSessions);
+  saveSessions();
+  return cut.length;
+}
+function mergeSessions(incoming){
+  if(!Array.isArray(incoming)) return 0;
+  const have = new Set(sessions.map(s => s.id).concat(archivedSessions.map(s => s.id)));
+  let added = 0;
+  incoming.forEach(s => {
+    if(!s || !s.minutes || have.has(s.id)) return;
+    sessions.push({
+      id: s.id || uid(),
+      day: s.day || dayKey(s.start || new Date()),
+      start: s.start || null, end: s.end || null,
+      minutes: s.minutes, subj: s.subj || "", task: s.task || ""
+    });
+    have.add(s.id);
+    added++;
+  });
+  /* 关键：导入的备份可能来自别的设备、或顺序与本地不一致，push 会破坏「正序」约定。
+     archiveSessions() 依赖正序来判断哪头是「最近的」，顺序一乱就会把最新记录归档掉、
+     反而把最旧的留在活跃列表里。所以合并后必须重新按时间正序排一次。 */
+  sortSessions();
+  archiveSessions();
+  saveSessions();
+  return added;
+}
+/* 统一按「日期 + 开始时间」正序排列：日期字符串是 YYYY-MM-DD，可直接字典序比较。
+   用一个比较器给活跃与归档两个数组共用，避免两处逻辑漂移。 */
+function sessCmp(a, b){
+  const da = String(a.day || ""), db = String(b.day || "");
+  if(da !== db) return da < db ? -1 : 1;
+  const sa = String(a.start || ""), sb = String(b.start || "");
+  if(sa !== sb) return sa < sb ? -1 : 1;
+  return 0;
+}
+function sortSessions(){ sessions.sort(sessCmp); }
+function sortArchivedSessions(){ archivedSessions.sort(sessCmp); }
 function rememberTask(name){
   const t = (name || "").trim();
   if(!t) return;
@@ -625,7 +1013,8 @@ function rememberTask(name){
 /* ---------------- 工具 ---------------- */
 function parseTags(text){
   const out = [];
-  const re = /[#＃]([^\s#＃,，、。；;:：!！?？()（）\[\]]+)/g;
+  /* 排除 . - / 等常见标点：否则「#数学二.」会把句号吞进标签名，「#Day-3」会把 -3 一起吞掉 */
+  const re = /[#＃]([^\s#＃,，、。；;:：!！?？()（）\[\]{}.．\-—–_/\\|*"'“”‘’]+)/g;
   let m;
   while((m = re.exec(text)) !== null){
     const t = m[1].trim();
@@ -652,6 +1041,22 @@ function toast(msg){
   clearTimeout(toast._t);
   toast._t = setTimeout(() => toastEl.classList.remove("on"), 1900);
 }
+/* 带「撤销」按钮的 toast：删除等操作给 5 秒反悔窗口 */
+const undoToastEl = $("undoToast"), undoMsgEl = $("undoMsg"), undoBtnEl = $("undoBtn");
+let undoTimer = null, undoAction = null;
+function toastUndo(msg, action){
+  undoMsgEl.textContent = msg;
+  undoAction = action;
+  undoToastEl.classList.add("on");
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { undoToastEl.classList.remove("on"); undoAction = null; }, 5000);
+}
+undoBtnEl.onclick = () => {
+  clearTimeout(undoTimer);
+  undoToastEl.classList.remove("on");
+  const a = undoAction; undoAction = null;
+  if(a) a();
+};
 function download(name, text, type){
   const blob = new Blob([text], {type: type || "text/plain;charset=utf-8"});
   const a = document.createElement("a");
@@ -672,20 +1077,31 @@ function visibleNotes(){
     .filter(n => !filterTag || (n.tags || []).includes(filterTag))
     .filter(n => {
       if(!filterSubj) return true;
-      if(filterSubj === "__none__") return !n.subj;
+      if(filterSubj === "__none__") return !n.subj || subjects.indexOf(n.subj) < 0;
       return (n.subj || "") === filterSubj;
     })
     .filter(n => {
       if(!q) return true;
-      return n.text.toLowerCase().includes(q) || (n.tags || []).some(t => t.toLowerCase().includes(q));
+      const text = typeof n.text === "string" ? n.text.toLowerCase() : "";
+      return text.includes(q) || (n.tags || []).some(t => typeof t === "string" && t.toLowerCase().includes(q));
     })
-    .sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+    /* 按时间倒序。原来用 localeCompare 比 ISO 字符串：
+       它受当前 locale 影响、不保证与字典序一致，几百条下也比直接比较慢得多。
+       这里改成先算数值时间戳再比，顺序稳定且更快。 */
+    .map(n => ({ n: n, ts: new Date(n.createdAt).getTime() || 0 }))
+    .sort((a, b) => b.ts - a.ts)
+    .map(x => x.n);
 }
 function renderChips(){
   const count = {};
   notes.forEach(n => (n.tags || []).forEach(t => count[t] = (count[t]||0)+1));
   const scount = {};
-  notes.forEach(n => { const s = n.subj || ""; scount[s] = (scount[s]||0)+1; });
+  let noneCount = 0;
+  notes.forEach(n => {
+    const s = n.subj || "";
+    if(s && subjects.indexOf(s) >= 0) scount[s] = (scount[s]||0)+1;
+    else noneCount++;                                   // 未选科目 + 科目已删除的都归入未分类
+  });
   const tags = Object.keys(count).sort((a,b) => count[b]-count[a]).slice(0, 20);
   chips.innerHTML = "";
   const mkChip = (label, dot, isOn, onClick) => {
@@ -699,14 +1115,14 @@ function renderChips(){
   subjects.forEach(s => {
     if(!scount[s]) return;
     mkChip(s + " " + scount[s], subjColor(s), filterSubj === s, () => {
-      filterSubj = (filterSubj === s) ? "" : s; filterTag = ""; render();
+      filterSubj = (filterSubj === s) ? "" : s; render();      // 不再清空标签与搜索词，三种过滤可叠加
     });
   });
-  if(scount[""]) mkChip("未分类 " + scount[""], "", filterSubj === "__none__", () => {
-    filterSubj = (filterSubj === "__none__") ? "" : "__none__"; filterTag = ""; render();
+  if(noneCount) mkChip("未分类 " + noneCount, "", filterSubj === "__none__", () => {
+    filterSubj = (filterSubj === "__none__") ? "" : "__none__"; render();
   });
   tags.forEach(t => mkChip("#" + t + " " + count[t], "", filterTag === t, () => {
-    filterTag = (filterTag === t) ? "" : t; filterSubj = ""; render();
+    filterTag = (filterTag === t) ? "" : t; render();          // 同上，保留科目与搜索词
   }));
 }
 function renderStats(){
@@ -727,10 +1143,16 @@ function renderStats(){
     $("stGoal").textContent = gd + "/" + goals.length;
   }
 }
+let listLimit = LIST_STEP;                                // 当前渲染条数上限（分页）
 function render(){
   renderStats();
   renderChips();
   renderExam();
+  renderList();
+}
+/* 只重建列表区（含目标卡与分页），搜索输入时用它，避免整页重画 */
+function renderList(keepLimit){
+  if(!keepLimit) listLimit = LIST_STEP;
   const arr = visibleNotes();
   list.innerHTML = "";
   if(!filterTag && !filterSubj && !query.trim()){
@@ -750,7 +1172,7 @@ function render(){
     return;
   }
   let lastDay = "";
-  arr.forEach(n => {
+  arr.slice(0, listLimit).forEach(n => {
     const k = dayKey(n.createdAt);
     if(k !== lastDay){
       const d = document.createElement("div");
@@ -761,6 +1183,14 @@ function render(){
     }
     list.appendChild(noteEl(n));
   });
+  if(arr.length > listLimit){
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "loadmore";
+    more.textContent = "加载更多 · 还有 " + (arr.length - listLimit) + " 条";
+    more.onclick = () => { listLimit += LIST_STEP; renderList(true); };
+    list.appendChild(more);
+  }
 }
 function noteEl(n){
   const card = document.createElement("article");
@@ -779,14 +1209,14 @@ function noteEl(n){
       bd.className = "badge pick";
       bd.title = "只看这一科";
       bd.innerHTML = '<span class="dot" style="background:' + subjColor(n.subj) + '"></span>' + esc(n.subj);
-      bd.onclick = () => { filterSubj = n.subj; filterTag = ""; query = ""; searchEl.value = ""; render(); };
+      bd.onclick = () => { filterSubj = n.subj; render(); };   // 保留标签与搜索词，过滤可叠加
       tg.appendChild(bd);
     }
     (n.tags || []).forEach(t => {
       const b = document.createElement("button");
       b.className = "tag";
       b.textContent = "#" + t;
-      b.onclick = () => { filterTag = t; filterSubj = ""; searchEl.value = ""; query = ""; render(); };
+      b.onclick = () => { filterTag = t; render(); };          // 同上
       tg.appendChild(b);
     });
     card.appendChild(tg);
@@ -815,36 +1245,70 @@ function noteEl(n){
 function addNote(){
   const text = composer.value.trim();
   if(!text) return;
-  notes.push({ id: uid(), text, tags: parseTags(text), subj: pickSubj || "", createdAt: new Date().toISOString() });
+  /* 统一走 normalizeNote()：补全 tags/subj/updatedAt 等字段，
+     与导入、跨标签合并走同一条规范化路径，避免两处字段漂移。 */
+  notes.push(normalizeNote({ text, tags: parseTags(text), subj: pickSubj || "", createdAt: new Date().toISOString() }));
   persist();
   composer.value = "";
   composer.style.height = "auto";
-  localStorage.removeItem(KEY_DRAFT);
+  clearTimeout(draftTimer);                    // 作废待写的防抖任务，别在清空后又写回一次
+  try{ localStorage.removeItem(KEY_DRAFT); }catch(e){}
   send.disabled = true;
   filterTag = ""; query = ""; searchEl.value = "";
   render();
   toast("已记录");
   list.scrollTop = 0;
 }
+function fillEditSubj(current){
+  const sel = $("editSubj");
+  if(!sel) return;
+  const cur = current || "";
+  let html = '<option value="">（未分类）</option>';
+  subjects.forEach(s => { html += '<option value="' + esc(s) + '">' + esc(s) + "</option>"; });
+  if(cur && subjects.indexOf(cur) < 0){                 // 科目已被删除，保留原值不丢
+    html += '<option value="' + esc(cur) + '">' + esc(cur) + "（已删除）</option>";
+  }
+  sel.innerHTML = html;
+  sel.value = cur;
+}
 function openEdit(n){
   editingId = n.id;
   editText.value = n.text;
+  fillEditSubj(n.subj || "");
   editDlg.showModal();
   setTimeout(() => editText.focus(), 50);
 }
 
 send.onclick = addNote;
+/* 草稿防抖 300ms：原来每敲一个键就同步写一次 localStorage，
+   既阻塞主线程，存储写满时抛出的 QuotaExceededError 也没人接。 */
+let draftTimer = null;
+function saveDraft(){
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(flushDraft, 300);
+}
+function flushDraft(){
+  clearTimeout(draftTimer);
+  draftTimer = null;
+  try{ localStorage.setItem(KEY_DRAFT, composer.value); }catch(e){}
+}
 composer.addEventListener("input", () => {
   send.disabled = !composer.value.trim();
   composer.style.height = "auto";
   composer.style.height = Math.min(composer.scrollHeight, 132) + "px";
-  localStorage.setItem(KEY_DRAFT, composer.value);
+  saveDraft();
 });
 composer.addEventListener("keydown", (e) => {
   const desktop = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
   if(e.key === "Enter" && !e.shiftKey && desktop){ e.preventDefault(); addNote(); }
 });
-searchEl.addEventListener("input", () => { query = searchEl.value; render(); });
+/* 搜索防抖 150ms：输入过程只重建列表区，不整页重画 */
+let searchTimer = null;
+searchEl.addEventListener("input", () => {
+  query = searchEl.value;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => renderList(), 150);
+});
 
 $("editCancel").onclick = () => editDlg.close();
 $("editSave").onclick = () => {
@@ -852,18 +1316,27 @@ $("editSave").onclick = () => {
   if(n){
     const t = editText.value.trim();
     if(!t){ toast("内容不能为空"); return; }
-    n.text = t; n.tags = parseTags(t); n.updatedAt = new Date().toISOString();
+    n.text = t;
+    n.tags = parseTags(t);
+    n.subj = $("editSubj") ? $("editSubj").value : (n.subj || "");   // 支持重新归类
+    n.updatedAt = new Date().toISOString();
     persist(); render(); toast("已保存");
   }
   editDlg.close();
 };
 $("editDel").onclick = () => {
   const n = notes.find(x => x.id === editingId);
-  if(n && confirm("删除这条记录？不可恢复。")){
-    notes = notes.filter(x => x.id !== n.id);
-    persist(); render(); toast("已删除");
-  }
   editDlg.close();
+  if(!n) return;
+  const idx = notes.indexOf(n);
+  notes.splice(idx, 1);
+  persist();
+  renderStats(); renderChips(); renderList();
+  const brief = n.text.length > 14 ? n.text.slice(0, 14) + "…" : n.text;
+  toastUndo("已删除「" + brief + "」", () => {
+    notes.splice(Math.min(idx, notes.length), 0, n);
+    persist(); render(); toast("已撤销删除");
+  });
 };
 
 $("menuBtn").onclick = () => menuDlg.showModal();
@@ -892,7 +1365,9 @@ menuDlg.addEventListener("click", (e) => {
     fileInput.click();
   } else if(act === "clear"){
     if(confirm("确定清空全部 " + notes.length + " 条记录？不可恢复，建议先导出备份。") && confirm("再确认一次：真的要全部删掉吗？")){
-      notes = []; persist(); filterTag = ""; query = ""; searchEl.value = ""; render(); toast("已清空");
+      notes = []; persist(); filterTag = ""; query = ""; searchEl.value = "";
+      clearTimeout(undoTimer); undoToastEl.classList.remove("on"); undoAction = null;  // 作废撤销缓冲
+      render(); toast("已清空");
     }
   }
   menuDlg.close();
@@ -910,6 +1385,7 @@ function applyTheme(mode){
   const dark = mode === "dark" || (mode === "auto" && window.matchMedia("(prefers-color-scheme:dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
   document.querySelector('meta[name=theme-color]').setAttribute("content", dark ? "#101218" : "#5b6cff");
+  applyPfTheme();      // 主题真正变化时才刷新全屏层按钮文案，不放在每秒 tick 里空转
 }
 function initTheme(){
   let saved = null;
@@ -937,15 +1413,45 @@ let pomo = { phase:"focus", focusMin:25, remainMs:25*60000, endAt:0, running:fal
 let audioCtx = null;
 
 function loadPomo(){
-  try{
-    const s = JSON.parse(localStorage.getItem(KEY_POMO) || "null");
-    if(s && typeof s === "object") Object.assign(pomo, s);
-  }catch(e){}
+  let s = null;
+  try{ s = JSON.parse(localStorage.getItem(KEY_POMO) || "null"); }catch(e){ s = null; }
+  /* 逐字段白名单校验，不用 Object.assign 整包盖上去：
+     存储可能被改坏、或来自旧版本，phase 一旦是非法值，
+     phaseTotalMs/phaseName 都会走错分支，focusMin 为负数还会算出荒谬的倒计时。 */
+  if(s && typeof s === "object"){
+    if(s.phase === "focus" || s.phase === "short" || s.phase === "long") pomo.phase = s.phase;
+    const fm = Number(s.focusMin);
+    if(isFinite(fm) && fm >= 1 && fm <= 180) pomo.focusMin = Math.round(fm);
+    const rm = Number(s.remainMs);
+    if(isFinite(rm) && rm >= 0) pomo.remainMs = Math.min(rm, phaseTotalMs(pomo.phase));
+    const ea = Number(s.endAt);
+    if(isFinite(ea) && ea > 0) pomo.endAt = ea;
+    pomo.running = !!s.running;
+    pomo.paused = !!s.paused;
+    const cy = Number(s.cycle);
+    pomo.cycle = isFinite(cy) && cy >= 0 ? Math.floor(cy) : 0;
+    pomo.autoLog = s.autoLog === undefined ? true : !!s.autoLog;
+    if(typeof s.subj === "string") pomo.subj = s.subj;
+    if(typeof s.task === "string") pomo.task = s.task;
+  }
   try{
     const l = JSON.parse(localStorage.getItem(KEY_POMOLOG) || "null");
     if(l && typeof l === "object") pomoLog = l;
   }catch(e){}
   if(!(pomo.remainMs > 0)) pomo.remainMs = phaseTotalMs(pomo.phase);
+  /* 关掉页面/切到别的标签页期间已经跑完：这里直接补结算。
+     以前只把它降级成「已暂停」，而调用方的结算条件是 `pomo.running && endAt 已过期`，
+     降级后 running 已是 false、endAt 又被清零，两边永远对不上，
+     结果这个番茄既不计入统计、也不进日程，重开页面只看到一句「已暂停」。
+     pomoFinish 定义在下方（函数声明会提升），可安全调用。 */
+  if(pomo.running && !(pomo.endAt > Date.now())) pomoFinish();
+  else if(pomo.running && !(pomo.endAt > 0)){
+    /* 运行中却压根没有 endAt：状态已不可信，降级为暂停并落盘，避免内存与存储长期打架 */
+    pomo.running = false;
+    pomo.paused = true;
+    pomo.endAt = 0;
+    savePomo();
+  }
   if(typeof pomo.subj !== "string") pomo.subj = pickSubj || "";
   if(typeof pomo.task !== "string") pomo.task = "";
   if(typeof pomo.paused !== "boolean") pomo.paused = false;
@@ -999,6 +1505,214 @@ function paintPomoBar(){
   if($("pomoBarText")) $("pomoBarText").textContent = state + (detail ? " · " + detail : "");
   if($("pomoBarMeta")) $("pomoBarMeta").textContent = meta;
   bar.title = started ? "点击打开番茄钟（" + (pomo.running ? "进行中" : "已暂停") + "）" : "点击开始一个番茄钟";
+  /* 运行中把倒计时写进标签页标题，切到别的窗口也能瞄到进度 */
+  if(pomo.running){
+    document.title = (pomo.phase === "focus" ? "🍅 " : "☕ ") + mmss(left) + " · " + phaseName(pomo.phase);
+  }else if(document.title !== BASE_TITLE){
+    document.title = BASE_TITLE;
+  }
+}
+
+/* ---------------- 全屏倒计时 ---------------- */
+let pomoFullOn = false;
+let wakeLock = null;
+let zenTimer = null;          // 呼出状态下的自动回隐计时器
+let zenTouched = false;       // 用户是否手动点过屏幕（点过就先不自动隐藏）
+
+/* 沉浸模式：计时中把按钮和文字淡出，只留倒计时；点屏幕再唤出 */
+function setZen(on){
+  const el = $("pomoFull");
+  if(!el) return;
+  el.classList.toggle("pf-zen", !!on);
+  /* 进出沉浸态都要清掉 surfacing 标记：之前只在 setZen(true) 里清，
+     用户「唤出 → 6 秒内暂停」时定时器被清、标记永久残留，底部提示点再也不显示。 */
+  el.classList.remove("pf-surfacing");
+  const tools = $("pfTools");
+  if(tools) tools.setAttribute("aria-hidden", on ? "true" : "false");
+}
+function pokePomoFull(){
+  /* 点屏幕：沉浸中则唤出，已唤出则淡出 */
+  const el = $("pomoFull");
+  if(!el || !pomo.running) return;               // 只有计时进行中才玩沉浸
+  zenTouched = true;
+  const isZen = el.classList.contains("pf-zen");
+  clearTimeout(zenTimer);
+  if(isZen){
+    setZen(false);
+    el.classList.add("pf-surfacing");
+    zenTimer = setTimeout(() => {                // 6 秒没再操作，自动回到沉浸
+      if(pomoFullOn && pomo.running && zenTouched) setZen(true);
+    }, 6000);
+  }else{
+    setZen(true);
+  }
+}
+function refreshZen(){
+  /* 计时中默认进入沉浸；暂停或未开始时始终显示按钮 */
+  const el = $("pomoFull");
+  if(!el) return;
+  if(!pomoFullOn){ clearTimeout(zenTimer); return; }
+  if(pomo.running){
+    if(!el.classList.contains("pf-zen") && !el.classList.contains("pf-surfacing")) setZen(true);
+  }else{
+    clearTimeout(zenTimer);
+    zenTouched = false;
+    el.classList.remove("pf-surfacing");     // 一起清掉，避免标记残留
+    setZen(false);
+  }
+}
+
+function openPomoFull(){
+  if(pomoFullOn) return;
+  pomoFullOn = true;
+  const el = $("pomoFull");
+  el.hidden = false;
+  el.setAttribute("aria-hidden", "false");
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");     // 读屏软件据此屏蔽背景内容
+  el.setAttribute("aria-label", "全屏倒计时");
+  document.documentElement.classList.add("pf-lock");
+  const pw = $("pomoDlg");
+  if(pw && pw.open) pw.close();                  // 收起小弹窗，避免两层叠着
+  zenTouched = false;
+  setZen(false);
+  applyPfTheme();
+  syncPomoFull();
+  refreshZen();
+  /* 全屏期间持续亮屏，别看着看着黑掉 */
+  try{
+    if(navigator.wakeLock && navigator.wakeLock.request){
+      navigator.wakeLock.request("screen").then(l => { wakeLock = l; }).catch(() => {});
+    }
+  }catch(e){}
+}
+
+function closePomoFull(){
+  if(!pomoFullOn) return;
+  pomoFullOn = false;
+  const el = $("pomoFull");
+  el.hidden = true;
+  el.setAttribute("aria-hidden", "true");
+  document.documentElement.classList.remove("pf-lock");
+  try{ if(wakeLock){ wakeLock.release(); wakeLock = null; } }catch(e){}
+  releaseOrientationLock();                      // 解除方向锁定，避免残留
+  /* 如果之前用了原生全屏（横屏按钮），一并退出 */
+  if(document.fullscreenElement && document.exitFullscreen){
+    document.exitFullscreen().catch(() => {});
+  }else if(document.webkitFullscreenElement && document.webkitExitFullscreen){
+    try{ document.webkitExitFullscreen(); }catch(e){}
+  }
+  clearTimeout(zenTimer);
+  zenTouched = false;
+  const pw = $("pomoDlg");
+  if(pw && !pw.open) pw.showModal();            // 回到小弹窗，继续操作
+  paintPomo();
+}
+
+function syncPomoFull(){
+  if(!pomoFullOn) return;
+  const total = phaseTotalMs(pomo.phase), left = remainMs();
+  const pct = total ? Math.max(0, Math.min(1, 1 - left / total)) : 0;
+  const ring = $("pfRingFg");
+  if(ring) ring.style.strokeDashoffset = String(339.292 * (1 - pct));
+  if($("pfNum")) $("pfNum").textContent = mmss(left);
+  if($("pfPhase")) $("pfPhase").textContent = phaseName(pomo.phase);
+  if($("pfToggle")) $("pfToggle").textContent = pomo.running ? "暂停" : ((pomo.paused || left < total) ? "继续" : "开始");
+  const task = (pomo.task || "").trim();
+  if($("pfTask")) $("pfTask").textContent = task;
+  if($("pfMeta")){
+    const subj = pomo.phase === "focus" ? (pomo.subj || "") : "";
+    const t = todayPomo();
+    const parts = [];
+    if(subj) parts.push(subj);
+    if(task) parts.push("本次 " + pomo.focusMin + " 分钟");
+    parts.push("今日 " + t.count + " 个 · " + t.minutes + " 分钟");
+    $("pfMeta").textContent = parts.join(" · ");
+  }
+}
+
+/* ---- 全屏倒计时的明暗主题，跟随全局主题（复用 themeBtn 的存储键） ---- */
+function applyPfTheme(){
+  const btn = $("pfTheme");
+  const dark = document.documentElement.dataset.theme === "dark";
+  if(btn) btn.textContent = dark ? "浅色" : "深色";
+  const hint = $("pfHint");
+  if(hint) hint.textContent = "按 Esc 也可退出 · 点屏幕任意处可呼出按钮";
+}
+function togglePfTheme(){
+  const dark = document.documentElement.dataset.theme === "dark";
+  const next = dark ? "light" : "dark";
+  try{ localStorage.setItem(KEY_THEME, next); }catch(e){}
+  applyTheme(next);
+  applyPfTheme();
+  toast(next === "dark" ? "深色模式" : "浅色模式");
+}
+
+function toggleNativeFullscreen(){
+  /* 横屏/全屏按钮：优先用原生 API 把页面推成全屏（配合系统横屏即可铺满），不支持则仅靠 CSS */
+  const el = document.documentElement;
+  const inFs = document.fullscreenElement || document.webkitFullscreenElement;
+  try{
+    if(!inFs){
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if(req){
+        const p = req.call(el);
+        if(p && p.catch) p.catch(() => {});
+      }
+      if(screen.orientation && screen.orientation.lock){
+        const lp = screen.orientation.lock("landscape");
+        if(lp && lp.catch) lp.catch(() => {});
+      }
+    }else{
+      if(document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+  }catch(e){}
+}
+
+/* 退出全屏时解除屏幕方向锁定：Android 上 exitFullscreen 不保证连带解锁，会残留 */
+function releaseOrientationLock(){
+  try{
+    if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  }catch(e){}
+}
+
+function initPomoFull(){
+  const wrap = $("pomoRingWrap");
+  if(wrap){
+    wrap.onclick = () => openPomoFull();
+    wrap.addEventListener("keydown", (e) => {
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openPomoFull(); }
+    });
+  }
+  if($("pfExit")) $("pfExit").onclick = closePomoFull;
+  if($("pfFullApi")) $("pfFullApi").onclick = toggleNativeFullscreen;
+  if($("pfTheme")) $("pfTheme").onclick = togglePfTheme;
+  if($("pfToggle")){
+    /* zen 状态完全由 pomoStart/pomoPause 内部统一处理，这里只防止冒泡触发「点屏幕」逻辑 */
+    $("pfToggle").onclick = (e) => { e.stopPropagation(); pomo.running ? pomoPause() : pomoStart(); };
+  }
+  if($("pfSkip")) $("pfSkip").onclick = (e) => {
+    e.stopPropagation();
+    if(pomo.phase === "focus" && (pomo.running || pomo.paused) && !confirm("跳过这轮专注？本轮不会计入统计。")) return;
+    setPhase(pomo.phase === "focus" ? "short" : "focus");
+    syncPomoFull();
+  };
+  /* 点屏幕空白处：沉浸 ↔ 呼出按钮（点在按钮/圆环上不触发） */
+  const full = $("pomoFull");
+  if(full){
+    full.addEventListener("click", (e) => {
+      if(e.target.closest("button")) return;
+      pokePomoFull();
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if(!pomoFullOn) return;
+    if(e.key === "Escape"){ e.preventDefault(); closePomoFull(); }
+    else if(e.key === " "){ e.preventDefault(); pomo.running ? pomoPause() : pomoStart(); }
+    else if(e.key === "t" || e.key === "T"){ togglePfTheme(); }
+  });
+  window.addEventListener("orientationchange", () => setTimeout(syncPomoFull, 120));
 }
 
 function paintPomo(){
@@ -1011,12 +1725,9 @@ function paintPomo(){
   if($("pomoToggle")){
     $("pomoToggle").textContent = pomo.running ? "暂停" : ((pomo.paused || left < total) ? "继续" : "开始");
   }
-  const btn = $("pomoBtn");
-  if(btn){
-    btn.textContent = pomo.running ? mmss(left) : "🍅";
-    btn.classList.toggle("live", pomo.running);
-    btn.title = pomo.running ? "番茄钟进行中 · " + phaseName(pomo.phase) + " " + mmss(left) : "番茄钟";
-  }
+  const rw = $("pomoRingWrap");
+  if(rw) rw.classList.toggle("live", !!(pomo.running || pomo.paused || left < total));
+  if($("zoomTip")) $("zoomTip").textContent = (pomo.running || pomo.paused || left < total) ? "点击放大倒计时 ⤢" : "点击放大 ⤢";
   const t = todayPomo();
   if($("stPomo")) $("stPomo").textContent = t.count;
   if($("pomoStat")) $("pomoStat").textContent = "今日 " + t.count + " 个番茄 · 专注 " + t.minutes + " 分钟";
@@ -1035,6 +1746,7 @@ function paintPomo(){
   const rc = $("pomoRecent");
   if(rc && rc.dataset.k !== rk){ rc.dataset.k = rk; renderRecentTasks(); }
   paintPomoBar();
+  syncPomoFull();
 }
 
 function beep(){
@@ -1042,6 +1754,8 @@ function beep(){
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if(!Ctx) return;
     audioCtx = audioCtx || new Ctx();
+    /* iOS 从后台切回来 AudioContext 常处于 suspended，先唤醒再响，否则提醒静音 */
+    if(audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
     const t0 = audioCtx.currentTime;
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = "sine"; o.frequency.value = 880;
@@ -1067,12 +1781,14 @@ function pomoStart(){
   try{
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if(Ctx && !audioCtx) audioCtx = new Ctx();          // 借着用户点击解锁音频
+    if(audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
     if(window.Notification && Notification.permission === "default") Notification.requestPermission();
   }catch(e){}
   pomo.endAt = Date.now() + Math.max(1000, pomo.remainMs);
   pomo.running = true;
   pomo.paused = false;
   savePomo(); paintPomo();
+  if(pomoFullOn){ zenTouched = false; setZen(true); }   // 全屏下开始即进沉浸
 }
 function pomoPause(){
   if(!pomo.running) return;
@@ -1080,6 +1796,7 @@ function pomoPause(){
   pomo.running = false;
   pomo.paused = true;
   savePomo(); paintPomo();
+  if(pomoFullOn){ clearTimeout(zenTimer); zenTouched = false; setZen(false); }  // 暂停时把按钮放出来
 }
 function setPhase(p){
   pomo.phase = p;
@@ -1087,14 +1804,20 @@ function setPhase(p){
   pomo.running = false;
   pomo.paused = false;
   pomo.endAt = 0;
-  savePomo(); paintPomo();
+  savePomo(); paintPomo(); syncPomoFull();
+  if(pomoFullOn){ clearTimeout(zenTimer); zenTouched = false; setZen(false); }
 }
 function pomoFinish(){
   const done = pomo.phase;
   pomo.running = false;
   pomo.remainMs = 0;
   if(done === "focus"){
-    const k = dayKey(new Date());
+    /* 用「本轮实际结束时间」而不是「现在」归属日期：
+       跨零点后台跑完、第二天才打开页面补结算时，记到当天才是对的。 */
+    const scheduledEnd = pomo.endAt ? new Date(pomo.endAt) : null;
+    const endedAt = (scheduledEnd && !isNaN(scheduledEnd.getTime()) && scheduledEnd <= new Date())
+                    ? scheduledEnd : new Date();
+    const k = dayKey(endedAt);
     const cur = pomoLog[k] || {count:0, minutes:0};
     const sname = pomo.subj || "";
     const sub = Object.assign({}, cur.subj || {});
@@ -1103,7 +1826,6 @@ function pomoFinish(){
     pomoLog[k] = {count: cur.count + 1, minutes: cur.minutes + pomo.focusMin, subj: sub};
     savePomoLog();
     const taskName = (pomo.task || "").trim();
-    const endedAt = new Date();
     sessions.push({
       id: uid(), day: k,
       start: new Date(endedAt.getTime() - pomo.focusMin * 60000).toISOString(),
@@ -1111,12 +1833,13 @@ function pomoFinish(){
       minutes: pomo.focusMin, subj: sname, task: taskName
     });
     saveSessions();
+    archiveSessions();                                    // 超出保留上限的最旧日程自动归档
     rememberTask(taskName);
     pomo.cycle = (pomo.cycle || 0) + 1;
     if(pomo.autoLog){
       const text = "🍅 " + pomo.focusMin + " 分钟专注" + (sname ? " · " + sname : "") +
                    (taskName ? " · " + taskName : "") + " #专注";
-      notes.push({ id: uid(), text, tags:["专注"], subj: sname, createdAt: new Date().toISOString() });
+      notes.push(normalizeNote({ text: text, tags: ["专注"], subj: sname, createdAt: endedAt.toISOString() }));
       persist();
       render();
     }
@@ -1128,9 +1851,36 @@ function pomoFinish(){
     notifyPomo("休息结束，继续加油");
   }
 }
+let tickIdle = 0;
 function pomoTick(){
-  if(pomo.running && pomo.endAt - Date.now() <= 0){ pomoFinish(); return; }
-  paintPomo();
+  /* 1) 先结算：跑完了就补，并把跨天视图一起刷新 */
+  if(pomo.running && pomo.endAt - Date.now() <= 0){ pomoFinish(); tickPomoCross(); return; }
+  /* 2) 有在动（计时中 / 弹窗开着 / 全屏中）→ 每秒重绘；跨天时也顺带刷一眼 */
+  if(pomo.running || ($("pomoDlg") && $("pomoDlg").open) || pomoFullOn){
+    paintPomo();
+    tickPomoCross();
+    return;
+  }
+  /* 3) 全空闲 → 降到 30 秒一拍。
+     这里原来是 `else if(++tickIdle >= 30)`，但 tickIdle 只在空闲时才自增，
+     永远不可能有别的分支把它推上去，那个 else if 等价于 else，纯属多余判断。
+     改成显式提前 return 的平铺结构，顺带让「空闲态也要查跨天」这件事一眼可见。 */
+  if(++tickIdle < 30) return;
+  tickIdle = 0;
+  renderStats(); paintPomoBar(); tickPomoCross();
+}
+/* 跨天守卫：这两个「只读当天」的视图不会因为时间流逝自动更新，
+   页面连着开一整夜时，昨晚的今日目标会一直停在已完成状态、番茄条也停在昨天。
+   成本极低——只有 dayKey 真的变了才重画，且只在页面可见时跑。 */
+let lastTickDay = "";
+function tickPomoCross(){
+  if(document.hidden) return;
+  const k = dayKey(new Date());
+  if(!lastTickDay){ lastTickDay = k; return; }
+  if(k === lastTickDay) return;
+  lastTickDay = k;
+  renderGoals();                                          // 新的一天，勾选状态归零
+  paintPomoBar();
 }
 /* ---- 自定义专注时长 ---- */
 function applyCustomFocus(){
@@ -1208,11 +1958,17 @@ function renderStatDlg(){
 function initPomo(){
   loadPomo();
   const open = () => { paintPomo(); if(!$("pomoDlg").open) $("pomoDlg").showModal(); };
-  $("pomoBtn").onclick = open;
   if($("pomoBar")) $("pomoBar").onclick = open;
+  initPomoFull();
   $("pomoToggle").onclick = () => { pomo.running ? pomoPause() : pomoStart(); };
-  $("pomoReset").onclick = () => { setPhase(pomo.phase); toast("已重置"); };
-  $("pomoSkip").onclick = () => setPhase(pomo.phase === "focus" ? "short" : "focus");
+  $("pomoReset").onclick = () => {
+    if((pomo.running || pomo.paused) && !confirm("重置当前" + phaseName(pomo.phase) + "？进度将清零。")) return;
+    setPhase(pomo.phase); toast("已重置");
+  };
+  $("pomoSkip").onclick = () => {
+    if(pomo.phase === "focus" && (pomo.running || pomo.paused) && !confirm("跳过这轮专注？本轮不会计入统计。")) return;
+    setPhase(pomo.phase === "focus" ? "short" : "focus");
+  };
   $("pomoClose").onclick = () => $("pomoDlg").close();
   $("pomoAutoLog").onchange = (e) => { pomo.autoLog = !!e.target.checked; savePomo(); };
   $("pomoCustomSet").onclick = applyCustomFocus;
@@ -1234,13 +1990,18 @@ function initPomo(){
   };
   document.querySelectorAll("#pomoModes .chip").forEach((c) => {
     c.onclick = () => {
-      pomo.focusMin = Number(c.dataset.min) || 25;
-      $("pomoCustom").value = String(pomo.focusMin);
-      if(pomo.phase === "focus"){ pomo.running = false; pomo.remainMs = phaseTotalMs("focus"); }
+      const v = Number(c.dataset.min) || 25;
+      if(v === pomo.focusMin) return;
+      pomo.focusMin = v;
+      $("pomoCustom").value = String(v);
+      if(pomo.phase === "focus"){
+        if(pomo.running){ toast("已切换为 " + v + " 分钟，下一个番茄生效"); }   // 与自定义时长一致：不打断进行中的计时
+        else { pomo.remainMs = phaseTotalMs("focus"); }
+      }
       savePomo(); paintPomo();
     };
   });
-  if(pomo.running && pomo.endAt - Date.now() <= 0) pomoFinish();   // 关掉页面期间已经跑完
+  /* 结算已在 loadPomo() 里做了（它会直接调 pomoFinish），这里只负责首屏渲染 */
   paintPomo();
   setInterval(pomoTick, 1000);
 }
@@ -1248,7 +2009,9 @@ function initPomo(){
 /* ---------------- 导出 Markdown ---------------- */
 function toMarkdown(){
   const byDay = {};
-  notes.slice().sort((a,b) => a.createdAt.localeCompare(b.createdAt)).forEach(n => {
+  /* 与列表一致：先算数值时间戳再比。localeCompare 受当前 locale 影响、不保证与字典序一致 */
+  const ts = (n) => new Date(n.createdAt).getTime() || 0;
+  notes.slice().sort((a, b) => ts(a) - ts(b)).forEach(n => {
     const k = dayKey(n.createdAt);
     (byDay[k] = byDay[k] || []).push(n);
   });
@@ -1307,6 +2070,18 @@ function saveExam(){
 }
 
 /* ---------------- 每日目标 ---------------- */
+/* goalLog 按天累积且只被「今天」消费，历史日期永远不会再读。
+   不清理的话键会一年年堆积、备份文件也跟着变大，所以保留最近 GOALLOG_KEEP 天即可。 */
+const GOALLOG_KEEP = 60;
+function pruneGoalLog(){
+  const keys = Object.keys(goalLog).sort();
+  if(keys.length <= GOALLOG_KEEP) return;
+  /* 反正只读当天，直接砍掉最早的那批（日期是 YYYY-MM-DD，字典序即时间序） */
+  const drop = keys.slice(0, keys.length - GOALLOG_KEEP);
+  let changed = false;
+  drop.forEach(k => { if(goalLog[k] !== undefined){ delete goalLog[k]; changed = true; } });
+  if(changed) saveRaw(KEY_GOALLOG, goalLog);
+}
 function goalsOfDay(){
   const k = dayKey(new Date());
   if(!goalLog[k]) goalLog[k] = {};
@@ -1324,7 +2099,7 @@ function renderGoals(){
                      " · " + Math.round(done / goals.length * 100) + '%</span>' +
                      '<button class="link" data-gact="open">编辑</button></div>' +
       goals.map(g =>
-        '<label class="goal"><input type="checkbox" data-gid="' + g.id + '"' + (m[g.id] ? " checked" : "") + ">" +
+        '<label class="goal"><input type="checkbox" data-gid="' + esc(g.id) + '"' + (m[g.id] ? " checked" : "") + ">" +
         '<span class="t' + (m[g.id] ? " done" : "") + '">' + esc(g.text) + "</span>" +
         (g.subj ? '<span class="badge"><span class="dot" style="background:' + subjColor(g.subj) + '"></span>' + esc(g.subj) + "</span>" : "") +
         "</label>").join("");
@@ -1357,49 +2132,59 @@ function renderGoalsDlg(){
   }
   box.querySelectorAll("button[data-di]").forEach(b => {
     b.onclick = () => {
-      goals.splice(Number(b.dataset.di), 1);
+      /* 连打卡记录一起清掉：goalLog 只按天累积、不会因为目标被删而回收，
+         不清的话会留下一批永远匹配不上任何目标、却要占满 60 天配额的孤儿键，
+         甚至把真正在用的日期挤出保留窗口。 */
+      const gone = goals.splice(Number(b.dataset.di), 1)[0];
+      if(gone){
+        let touched = false;
+        for(const k in goalLog){
+          if(goalLog[k] && goalLog[k][gone.id] !== undefined){ delete goalLog[k][gone.id]; touched = true; }
+        }
+        if(touched) saveRaw(KEY_GOALLOG, goalLog);
+      }
       saveRaw(KEY_GOALS, goals);
-      renderGoalsDlg(); renderGoals();
+      renderGoalsDlg(); renderGoals(); renderStats();
     };
   });
 }
 function addGoal(){
   const t = $("goalNew").value.trim();
   if(!t){ toast("先写点内容"); return; }
+  if(t.length > 60){ toast("目标太长了，请控制在 60 字以内"); return; }
+  if(goals.length >= 30){ toast("目标太多了，先删掉一些吧"); return; }
   goals.push({ id: uid(), text: t, subj: $("goalSubjSel") ? $("goalSubjSel").value : "" });
   saveRaw(KEY_GOALS, goals);
   $("goalNew").value = "";
-  renderGoalsDlg(); renderGoals();
+  renderGoalsDlg(); renderGoals(); renderStats();   // 顶部「目标 N/M」计数也要跟着刷新
   toast("已添加");
 }
 
 /* ---------------- 科目 ---------------- */
-function renderSubjBar(){
-  const bar = $("subjBar"); if(!bar) return;
+/* 科目 chip 条通用渲染：录入栏与番茄钟共用一套逻辑 */
+function mkSubjChips(barId, current, onPick){
+  const bar = $(barId); if(!bar) return;
   bar.innerHTML = "";
   const mk = (label, value, color) => {
     const b = document.createElement("button");
-    b.className = "chip subj" + (pickSubj === value ? " on" : "");
+    b.type = "button";
+    b.className = "chip subj" + (current() === value ? " on" : "");
     b.innerHTML = (color ? '<span class="dot" style="background:' + color + '"></span>' : "") + esc(label);
-    b.onclick = () => { pickSubj = value; saveRaw(KEY_LASTSUBJ, value); renderSubjBar(); renderPomoSubj(); };
+    b.onclick = () => onPick(value);
     bar.appendChild(b);
   };
   subjects.forEach(s => mk(s, s, subjColor(s)));
   mk("未分类", "", "");
 }
+function renderSubjBar(){
+  mkSubjChips("subjBar",
+    () => pickSubj,
+    (v) => { pickSubj = v; saveRaw(KEY_LASTSUBJ, v); renderSubjBar(); renderPomoSubj(); });
+}
 function renderPomoSubj(){
-  const bar = $("pomoSubj"); if(!bar) return;
-  const cur = pomo.subj || "";
-  bar.innerHTML = "";
-  const mk = (label, value, color) => {
-    const b = document.createElement("button");
-    b.className = "chip subj" + (cur === value ? " on" : "");
-    b.innerHTML = (color ? '<span class="dot" style="background:' + color + '"></span>' : "") + esc(label);
-    b.onclick = () => { pomo.subj = value; savePomo(); renderPomoSubj(); };
-    bar.appendChild(b);
-  };
-  subjects.forEach(s => mk(s, s, subjColor(s)));
-  mk("未分类", "", "");
+  mkSubjChips("pomoSubj",
+    () => pomo.subj || "",
+    (v) => { pomo.subj = v; savePomo(); renderPomoSubj(); });
 }
 function renderSubjDlg(){
   const box = $("subjList"); if(!box) return;
@@ -1410,15 +2195,45 @@ function renderSubjDlg(){
     '<div class="stat-row"><span>还没有科目</span></div>';
   box.querySelectorAll("button[data-si]").forEach(b => {
     b.onclick = () => {
-      subjects.splice(Number(b.dataset.si), 1);
-      saveRaw(KEY_SUBJ, subjects);
-      renderSubjDlg(); renderSubjBar(); renderPomoSubj(); renderChips();
+      const i = Number(b.dataset.si);
+      const s = subjects[i];
+      if(s == null) return;
+      /* 删除科目时处理关联笔记，避免既筛不出来也不算未分类的“幽灵笔记”。
+         这里用三选一弹窗，而不是 confirm —— confirm 的「取消」语义会让人误以为「不删了」，
+         但它实际上是「删掉、只是笔记保留原标记」。 */
+      const cnt = notes.filter(n => (n.subj || "") === s).length;
+      if(cnt === 0){ doDeleteSubject(i, false); return; }
+      askDeleteSubject(i, s, cnt);
     };
   });
+}
+let pendingDelSubj = null;
+function askDeleteSubject(i, name, cnt){
+  pendingDelSubj = { i: i, name: name, cnt: cnt };
+  $("delSubjMsg").textContent = "「" + name + "」下有 " + cnt + " 条笔记。";
+  $("delSubjDlg").showModal();
+}
+function doDeleteSubject(i, migrate){
+  const s = subjects[i];
+  if(s == null) return;
+  if(migrate){
+    if(s !== "其他" && subjects.indexOf("其他") < 0) subjects.push("其他");
+    notes.forEach(n => { if((n.subj || "") === s) n.subj = "其他"; });
+    persist();
+  }
+  subjects.splice(i, 1);
+  saveRaw(KEY_SUBJ, subjects);
+  renderSubjDlg(); renderSubjBar(); renderPomoSubj(); renderChips(); renderList();
+  if(migrate) toast("已删除科目，" + (pendingDelSubj ? pendingDelSubj.cnt : "") + " 条笔记移到「其他」");
+  else if(pendingDelSubj && pendingDelSubj.cnt) toast("已删除科目，笔记保留原标记（见「未分类」）");
+  else toast("已删除科目");
+  pendingDelSubj = null;
 }
 function addSubject(){
   const s = $("subjNew").value.trim();
   if(!s) return;
+  if(s.length > 24){ toast("科目名太长了，请控制在 24 字以内"); return; }
+  if(subjects.length >= 60){ toast("科目太多了，先删掉一些吧"); return; }
   if(subjects.includes(s)){ toast("这个科目已经有了"); return; }
   subjects.push(s);
   saveRaw(KEY_SUBJ, subjects);
@@ -1462,8 +2277,9 @@ function renderSubjStats(){
 
 /* ---------------- 备份 ---------------- */
 function backupPayload(){
-  return { app:"StudyBuddy", version:2, exportedAt:new Date().toISOString(),
-           notes, pomoLog, exam, subjects, goals, goalLog };
+  return { app:"StudyBuddy", version:3, exportedAt:new Date().toISOString(),
+           notes, pomoLog, exam, subjects, goals, goalLog,
+           sessions: sessions.concat(archivedSessions), recentTasks };
 }
 function markBackup(){ saveRaw(KEY_LASTBK, dayKey(new Date())); renderBackupTip(); }
 function daysSinceBackup(){
@@ -1503,17 +2319,21 @@ async function pasteImport(){
 }
 function mergePomoLog(incoming){
   if(!incoming || typeof incoming !== "object") return;
+  /* 按「天」取两边最大值，而不是逐字段取 max：
+     同一天在 A 设备做了 3 个、B 设备做了 2 个，逐字段合并得 3，互补的 2 个直接蒸发。
+     取最大值虽然仍无法把「两边都连续在用、日期有重叠」的情况算准，
+     但至少保证「同一天只有一个计数器在动」这个最常见场景结果正确，也绝不会把数据算少。 */
   for(const k in incoming){
     const a = pomoLog[k], b = incoming[k];
+    if(!b || typeof b !== "object") continue;
     if(!a){ pomoLog[k] = b; continue; }
-    const out = { count: Math.max(a.count || 0, b.count || 0),
-                  minutes: Math.max(a.minutes || 0, b.minutes || 0),
-                  subj: Object.assign({}, a.subj || {}) };
-    const bs = b.subj || {};
-    for(const s in bs){
-      const x = out.subj[s] || {count:0, minutes:0};
-      out.subj[s] = { count: Math.max(x.count, bs[s].count || 0), minutes: Math.max(x.minutes, bs[s].minutes || 0) };
-    }
+    const pickDay = a.count ? (b.count ? Math.max(a.count, b.count) : a.count) : (b.count || 0);
+    let src;
+    if(pickDay === (b.count || 0) && (b.count || 0) > (a.count || 0)) src = b; else src = a;
+    const out = { count: pickDay,
+                  minutes: pickDay === (b.count || 0) && (b.count || 0) > (a.count || 0)
+                             ? (b.minutes || 0) : (a.minutes || 0),
+                  subj: Object.assign({}, (src.subj || {})) };
     pomoLog[k] = out;
   }
   savePomoLog();
@@ -1522,27 +2342,55 @@ function importData(text){
   try{
     const data = JSON.parse(text);
     const arr = Array.isArray(data) ? data : (data.notes || []);
-    const have = new Set(notes.map(n => n.text + "|" + n.createdAt));
-    let added = 0;
+    /* 去重键：规范化文本（去空白）+ 日期到分钟。
+       原来用完整毫秒 ISO 时间戳，跨设备永远不可能相同，等于没去重。 */
+    const nk = (t, iso) => {
+      const d = new Date(iso);
+      const min = isNaN(d.getTime()) ? String(iso || "").slice(0, 16)
+                                     : d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) +
+                                       " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+      return String(t || "").replace(/\s+/g, " ").trim() + "|" + min;
+    };
+    const have = new Set(notes.map(n => nk(n.text, n.createdAt)));
+    const seenInFile = new Set();
+    let added = 0, dup = 0;
+    let addedS = 0;
     arr.forEach(x => {
       if(!x || typeof x.text !== "string") return;
       const createdAt = x.createdAt || new Date().toISOString();
-      if(have.has(x.text + "|" + createdAt)) return;
-      notes.push({ id: uid(), text: x.text, tags: (x.tags && x.tags.length) ? x.tags : parseTags(x.text),
-                   subj: x.subj || "", createdAt, updatedAt: x.updatedAt || null });
-      have.add(x.text + "|" + createdAt);
+      const key = nk(x.text, createdAt);
+      if(have.has(key) || seenInFile.has(key)){ dup++; return; }   // 与现有记录、以及本次文件内重复的都跳过
+      seenInFile.add(key);
+      notes.push(normalizeNote({ id: null, text: x.text, tags: x.tags, subj: x.subj, createdAt, updatedAt: x.updatedAt }));
+      have.add(key);
       added++;
     });
     if(!Array.isArray(data)){
       mergePomoLog(data.pomoLog);
       if(Array.isArray(data.subjects)){
-        data.subjects.forEach(s => { if(typeof s === "string" && s && !subjects.includes(s)) subjects.push(s); });
+        /* 与手动添加走同一套约束（24 字 / 60 个）：
+           导入是数据进入内存的后门，之前只判断了「是字符串」，
+           一份被改过的备份就能塞进超长科目名把科目条撑坏。 */
+        data.subjects.forEach(s => {
+          if(typeof s !== "string") return;
+          const v = s.trim();
+          if(!v || v.length > 24) return;
+          if(subjects.length >= 60) return;
+          if(subjects.indexOf(v) < 0) subjects.push(v);
+        });
         saveRaw(KEY_SUBJ, subjects);
       }
       if(Array.isArray(data.goals) && data.goals.length){
         const haveG = new Set(goals.map(g => g.text));
         data.goals.forEach(g => {
-          if(g && g.text && !haveG.has(g.text)) goals.push({ id: uid(), text: g.text, subj: g.subj || "" });
+          /* text 必须是非空字符串：notes 那条路径有同样的校验，这里漏了的话，
+             对象类型的 text 会被原样存下来，界面上显示成 [object Object]。 */
+          if(!g || typeof g.text !== "string") return;
+          const t = g.text.trim();
+          if(!t || t.length > 60 || haveG.has(t)) return;
+          if(goals.length >= 30) return;
+          haveG.add(t);
+          goals.push({ id: uid(), text: t, subj: typeof g.subj === "string" ? g.subj : "" });
         });
         saveRaw(KEY_GOALS, goals);
       }
@@ -1552,10 +2400,39 @@ function importData(text){
         }
         saveRaw(KEY_GOALLOG, goalLog);
       }
+      if(data.exam && typeof data.exam.date === "string"){
+        /* 日期必须形如 YYYY-MM-DD 才收，否则 examDaysLeft 会算出 null、
+           而 renderExam 又会把乱码日期直接显示出来，用户以为导进来了其实是坏的 */
+        const ed = data.exam.date.trim();
+        if(/^\d{4}-\d{2}-\d{2}$/.test(ed) && !isNaN(new Date(ed + "T00:00:00").getTime())){
+          exam = { name: typeof data.exam.name === "string" && data.exam.name ? data.exam.name : exam.name, date: ed };
+          saveRaw(KEY_EXAM, exam);
+          renderExam();
+        }
+      }
+      addedS = mergeSessions(data.sessions);
+      if(Array.isArray(data.recentTasks)){
+        data.recentTasks.forEach(t => {
+          if(typeof t === "string" && t && recentTasks.indexOf(t) < 0) recentTasks.push(t);
+        });
+        recentTasks = recentTasks.slice(0, 6);
+        saveRaw(KEY_TASKS, recentTasks);
+      }
     }
     persist();
+    /* 两个受限列表都在导入里被限制了长度，但外部数据仍可能是「已有 59 条 + 导入 1 条」
+       之外的越界情况；这里再削一刀，保证不变量始终成立。 */
+    const MAX_SUBJ = 60, MAX_GOAL = 30, MAX_GOALTEXT = 60, MAX_SUBJCHARS = 24;
+    if(subjects.length > MAX_SUBJ){ subjects = subjects.slice(0, MAX_SUBJ); saveRaw(KEY_SUBJ, subjects); }
+    if(goals.length > MAX_GOAL){ goals = goals.slice(0, MAX_GOAL); saveRaw(KEY_GOALS, goals); }
+    if(subjects.some(s => s.length > MAX_SUBJCHARS) || goals.some(g => g.text.length > MAX_GOALTEXT)){
+      subjects = subjects.filter(s => s.length <= MAX_SUBJCHARS);
+      goals = goals.filter(g => g.text.length <= MAX_GOALTEXT);
+      saveRaw(KEY_SUBJ, subjects); saveRaw(KEY_GOALS, goals);
+    }
     renderSubjBar(); renderPomoSubj(); render();
-    toast("导入完成，新增 " + added + " 条记录");
+    toast("导入完成：新增 " + added + " 条" + (dup ? "，跳过 " + dup + " 条重复" : "") +
+          (addedS ? "；日程 +" + addedS : ""));
   }catch(e){
     toast("导入失败：内容不是有效的备份 JSON");
   }
@@ -1578,7 +2455,9 @@ function schedToday(){
   return { count: arr.length, minutes: arr.reduce((a, s) => a + (s.minutes || 0), 0) };
 }
 function schedAll(){
-  return { count: sessions.length, minutes: sessions.reduce((a, s) => a + (s.minutes || 0), 0) };
+  /* 累计统计计入归档日程 */
+  const all = sessions.concat(archivedSessions);
+  return { count: all.length, minutes: all.reduce((a, s) => a + (s.minutes || 0), 0) };
 }
 function hhmm(iso){
   const d = new Date(iso);
@@ -1602,10 +2481,16 @@ function renderSched(){
     (byDay[k] = byDay[k] || []).push(s);
   });
   let html = "", shown = 0;
+  const fmt = (iso) => { const d = new Date(iso); return isNaN(d.getTime()) ? 0 : d.getTime(); };
   Object.keys(byDay).sort().reverse().forEach(k => {
     if(shown >= 60) return;
-    const rows = byDay[k].sort((a, b) => (b.start || "").localeCompare(a.start || ""));
-    html += '<div class="day">' + fmtDay(k) + " · " + rows.length + " 个</div>";
+    /* 同上：用时间戳排序。这两处原来还在用 localeCompare，跨设备导入的日程会排错 */
+    const rows = byDay[k].sort((a, b) => fmt(b.start) - fmt(a.start));
+    /* 标题上的「N 个」要按**实际渲染条数**算：
+       截断发生在下面的循环里，用 rows.length 会让被截掉的那天虚报数量、
+       和列表里实际看到的东西对不上。 */
+    const cap = Math.min(rows.length, 60 - shown);
+    html += '<div class="day">' + fmtDay(k) + " · " + cap + " 个" + (cap < rows.length ? "（本日仅显示最近 " + cap + " 条）" : "") + "</div>";
     rows.forEach(s => {
       if(shown >= 60) return;
       shown++;
@@ -1619,6 +2504,7 @@ function renderSched(){
     });
   });
   if(shown < sessions.length) html += '<div class="chart-cap">只显示最近 60 条，共 ' + sessions.length + " 条</div>";
+  if(archivedSessions.length) html += '<div class="chart-cap">另有 ' + archivedSessions.length + " 条较早记录已自动归档，导出备份包含全部</div>";
   box.innerHTML = html;
 }
 function schedText(){
@@ -1626,8 +2512,9 @@ function schedText(){
   const byDay = {};
   sessions.forEach(s => { const k = s.day || dayKey(s.start || new Date()); (byDay[k] = byDay[k] || []).push(s); });
   let out = "StudyBuddy 完成的学习日程\n";
+  const fmt2 = (iso) => { const d = new Date(iso); return isNaN(d.getTime()) ? 0 : d.getTime(); };
   Object.keys(byDay).sort().reverse().forEach(k => {
-    const rows = byDay[k].sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+    const rows = byDay[k].sort((a, b) => fmt2(a.start) - fmt2(b.start));
     const mins = rows.reduce((a, s) => a + (s.minutes || 0), 0);
     out += "\n【" + k + "】" + rows.length + " 个 · " + fmtDur(mins) + "\n";
     rows.forEach(s => {
@@ -1663,15 +2550,62 @@ function initExtra(){
   $("goalNew").addEventListener("keydown", (e) => { if(e.key === "Enter"){ e.preventDefault(); addGoal(); } });
   $("subjClose").onclick = () => { $("subjDlg").close(); render(); };
   $("subjAdd").onclick = addSubject;
+  /* 删除科目的三选一 */
+  $("delSubjMove").onclick = () => {
+    const p = pendingDelSubj; $("delSubjDlg").close();
+    if(p) doDeleteSubject(p.i, true);
+  };
+  $("delSubjKeep").onclick = () => {
+    const p = pendingDelSubj; $("delSubjDlg").close();
+    if(p) doDeleteSubject(p.i, false);
+  };
+  $("delSubjCancel").onclick = () => {
+    pendingDelSubj = null; $("delSubjDlg").close(); toast("已取消");
+  };
   $("subjNew").addEventListener("keydown", (e) => { if(e.key === "Enter"){ e.preventDefault(); addSubject(); } });
   $("schedClose").onclick = () => $("schedDlg").close();
   $("schedCopy").onclick = copySched;
   $("schedClear").onclick = () => {
-    if(!sessions.length){ toast("本来就是空的"); return; }
-    if(!confirm("清空全部学习日程记录？日志和番茄统计不受影响。")) return;
-    if(!confirm("再确认一次：删除这 " + sessions.length + " 条完成记录？")) return;
-    sessions = []; saveSessions(); renderSched(); toast("已清空日程");
+    const total = sessions.length + archivedSessions.length;
+    if(!total){ toast("本来就是空的"); return; }
+    if(!confirm("清空全部学习日程记录（含已归档）？日志和番茄统计不受影响。")) return;
+    if(!confirm("再确认一次：删除这 " + total + " 条完成记录？")) return;
+    sessions = []; archivedSessions = [];
+    saveSessions(); saveRaw(KEY_SESS_ARC, archivedSessions);
+    renderSched(); toast("已清空日程");
   };
+}
+
+/* ---------------- 多标签页同步 ---------------- */
+/* 其他标签页写入的数据实时同步过来，配合 persist() 的写前合并，把多标签覆盖丢数据的窗口压到毫秒级。
+   注意：KEY_POMO / KEY_POMOLOG 不在列表内 —— 两个标签页各开一个番茄钟时，
+   互相覆盖 endAt/running 会让计时错乱，番茄钟状态只属于「当前这个标签页」。 */
+const SYNC_KEYS = [KEY_NOTES, KEY_SESS, KEY_SESS_ARC, KEY_TASKS, KEY_SUBJ, KEY_GOALS, KEY_GOALLOG, KEY_EXAM];
+let reloadTimer = null;
+let pendingReload = false;
+window.addEventListener("storage", (e) => {
+  if(!e.key || SYNC_KEYS.indexOf(e.key) < 0) return;
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => {
+    /* 正在弹窗里操作时先不打断，关掉弹窗再补刷新 */
+    if(document.querySelector("dialog[open]")){ pendingReload = true; return; }
+    doReload();
+  }, 150);
+});
+function doReload(){
+  /* KEY_NOTES/日程等数据重新读入；番茄钟状态不参与同步，保持本页自己的进度 */
+  load(); loadExtra();
+  if(pomo.running && pomo.endAt && pomo.endAt - Date.now() <= 0) pomoFinish();   // 期间已经跑完就结算
+  renderSubjBar(); renderPomoSubj(); renderExam();
+  /* 跨标签页同步只换数据，不动用户的浏览位置：
+     滚动容器是 main#list（它自己 overflow-y:auto，窗口根本不滚），
+     所以要保的是 list.scrollTop，不是 window.scrollY。
+     render() 会重建列表、把 scrollTop 打回 0，这里读旧值、渲染后写回去。 */
+  const keepScroll = list.scrollTop;
+  render();
+  list.scrollTop = keepScroll;
+  paintPomo(); syncPomoFull();
+  renderGoals();                                          // 目标打卡数据可能来自另一个标签页
 }
 
 /* ---------------- 启动 ---------------- */
@@ -1687,9 +2621,58 @@ function boot(){
   if(notes.length && (nb === null || nb >= 3)){
     setTimeout(() => toast("数据该备份了：⋯ → 复制备份到剪贴板"), 1200);
   }
+  /* 弹窗关闭后补一次被搁置的跨标签页同步 */
+  document.querySelectorAll("dialog").forEach(d => d.addEventListener("close", () => {
+    if(pendingReload){ pendingReload = false; doReload(); }
+  }));
+  /* 回到前台时唤醒被挂起的音频，保证番茄提醒有声 */
+  document.addEventListener("visibilitychange", () => {
+    if(!document.hidden && audioCtx && audioCtx.state === "suspended"){
+      audioCtx.resume().catch(() => {});
+    }else if(document.hidden){
+      flushDraft();          // 切后台前把防抖中的草稿立即落盘，避免丢字
+    }
+  });
+  window.addEventListener("pagehide", flushDraft);
+  initManifest();
+  /* 单文件部署时 sw.js 常常不存在：先探测再注册，避免控制台 404 */
   if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    fetch("sw.js", { method: "HEAD" })
+      .then(r => { if(r.ok) return navigator.serviceWorker.register("sw.js"); })
+      .catch(() => {});
   }
+}
+/* 用脚本拼出 manifest 并挂成 Blob URL：
+   单文件分发时没有独立的 manifest 文件，外链只会 404；
+   内联生成后「添加到主屏」即可拿到名字、图标与独立窗口模式。 */
+function initManifest(){
+  const icon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E" +
+    "%3Crect width='512' height='512' fill='%235b6cff'/%3E" +
+    "%3Cpath d='M160 352V160h48l48 96 48-96h48v192h-40V236l-40 80h-32l-40-80v116z' fill='%23fff'/%3E%3C/svg%3E";
+  const mf = {
+    name: "StudyBuddy · 日志笔记",
+    short_name: "StudyBuddy",
+    start_url: ".",
+    scope: ".",
+    display: "standalone",
+    background_color: "#101218",
+    theme_color: "#5b6cff",
+    description: "轻量日志笔记：随手记，用 #标签 分类，支持搜索、导出、离线使用。",
+    icons: [
+      { src: icon, sizes: "192x192", type: "image/svg+xml", purpose: "any" },
+      { src: icon, sizes: "512x512", type: "image/svg+xml", purpose: "any" },
+      { src: icon, sizes: "any", type: "image/svg+xml", purpose: "maskable" }
+    ]
+  };
+  try{
+    const url = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type: "application/manifest+json" }));
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = url;
+    document.head.appendChild(link);
+    /* 页面卸载时回收，避免 Blob 常驻内存 */
+    window.addEventListener("pagehide", () => { try{ URL.revokeObjectURL(url); }catch(e){} });
+  }catch(e){}
 }
 boot();
 })();
