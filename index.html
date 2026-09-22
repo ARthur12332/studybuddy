@@ -231,6 +231,27 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 .chart-cap{text-align:center;font-size:11.5px;color:var(--muted);padding:2px 0 4px}
 .sub-h{margin:16px 0 2px;font-size:13px;font-weight:700}
 
+/* ---------- 番茄钟入口条 ---------- */
+.pomobar{
+  position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;width:100%;
+  border:0;border-radius:14px;padding:13px 15px;margin-bottom:10px;cursor:pointer;
+  background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;
+  box-shadow:0 8px 20px -10px rgba(91,108,255,.85);
+  font:inherit;text-align:left;
+}
+.pomobar:active{transform:scale(.99)}
+.pomobar .picon{flex:0 0 auto;font-size:21px;line-height:1}
+.pomobar .ptxt{flex:1;min-width:0;font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pomobar .pmeta{flex:0 0 auto;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+.pomobar .pfill{position:absolute;left:0;bottom:0;height:3px;width:0;background:rgba(255,255,255,.85);transition:width .5s linear}
+.pomobar.live{animation:pomopulse 2.6s ease-in-out infinite}
+@keyframes pomopulse{
+  0%,100%{box-shadow:0 8px 20px -10px rgba(91,108,255,.85)}
+  50%{box-shadow:0 10px 26px -8px rgba(91,108,255,1)}
+}
+.pomobar.rest{background:linear-gradient(135deg,#2f9e6e,#57c99a);box-shadow:0 8px 20px -10px rgba(47,158,110,.8)}
+#pomoBtn{min-width:58px;font-size:14px;font-weight:700}
+
 /* ---------- 考试倒计时 ---------- */
 .exam{
   display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
@@ -316,6 +337,12 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
       <span class="ename" id="examName">27 考研初试</span>
       <span class="go">设置 ›</span>
     </div>
+    <button class="pomobar" id="pomoBar" type="button">
+      <span class="picon">🍅</span>
+      <span class="ptxt" id="pomoBarText">开始一个番茄钟</span>
+      <span class="pmeta" id="pomoBarMeta">25 分钟</span>
+      <span class="pfill" id="pomoBarFill"></span>
+    </button>
     <div class="search">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
@@ -907,7 +934,7 @@ const KEY_POMOLOG = "studybuddy.pomolog.v1";
 const LONG_EVERY = 4;                 // 每完成 4 个番茄，休息一次长的
 
 let pomoLog = {};                     // { "2026-09-21": {count, minutes} }
-let pomo = { phase:"focus", focusMin:25, remainMs:25*60000, endAt:0, running:false, cycle:0, autoLog:true, subj:"", task:"" };
+let pomo = { phase:"focus", focusMin:25, remainMs:25*60000, endAt:0, running:false, paused:false, cycle:0, autoLog:true, subj:"", task:"" };
 let audioCtx = null;
 
 function loadPomo(){
@@ -922,12 +949,13 @@ function loadPomo(){
   if(!(pomo.remainMs > 0)) pomo.remainMs = phaseTotalMs(pomo.phase);
   if(typeof pomo.subj !== "string") pomo.subj = pickSubj || "";
   if(typeof pomo.task !== "string") pomo.task = "";
+  if(typeof pomo.paused !== "boolean") pomo.paused = false;
 }
 function savePomo(){
   try{
     localStorage.setItem(KEY_POMO, JSON.stringify({
       phase:pomo.phase, focusMin:pomo.focusMin, remainMs:pomo.remainMs,
-      endAt:pomo.endAt, running:pomo.running, cycle:pomo.cycle, autoLog:pomo.autoLog,
+      endAt:pomo.endAt, running:pomo.running, paused:!!pomo.paused, cycle:pomo.cycle, autoLog:pomo.autoLog,
       subj:pomo.subj || "", task:pomo.task || ""
     }));
   }catch(e){}
@@ -950,6 +978,30 @@ function todayPomo(){
   return pomoLog[k] || {count:0, minutes:0};
 }
 
+function paintPomoBar(){
+  const bar = $("pomoBar"); if(!bar) return;
+  const total = phaseTotalMs(pomo.phase), left = remainMs();
+  const pct = total ? Math.max(0, Math.min(1, 1 - left / total)) : 0;
+  const fill = $("pomoBarFill");
+  if(fill) fill.style.width = (pct * 100).toFixed(1) + "%";
+  const isFocus = pomo.phase === "focus";
+  bar.classList.toggle("rest", !isFocus);
+  bar.classList.toggle("live", !!pomo.running);
+  const started = !!pomo.running || !!pomo.paused || left < total;
+  const detail = isFocus ? [(pomo.subj || ""), (pomo.task || "").trim()].filter(Boolean).join(" · ") : "";
+  let state, meta;
+  if(!started){
+    state = isFocus ? "开始一个番茄钟" : (phaseName(pomo.phase) + " · 点开开始计时");
+    meta = (isFocus ? pomo.focusMin : phaseMinutes(pomo.phase)) + " 分钟";
+  }else{
+    state = pomo.running ? (isFocus ? "专注中" : phaseName(pomo.phase)) : "已暂停";
+    meta = mmss(left);
+  }
+  if($("pomoBarText")) $("pomoBarText").textContent = state + (detail ? " · " + detail : "");
+  if($("pomoBarMeta")) $("pomoBarMeta").textContent = meta;
+  bar.title = started ? "点击打开番茄钟（" + (pomo.running ? "进行中" : "已暂停") + "）" : "点击开始一个番茄钟";
+}
+
 function paintPomo(){
   const total = phaseTotalMs(pomo.phase), left = remainMs();
   const pct = total ? (1 - left / total) : 0;
@@ -958,7 +1010,7 @@ function paintPomo(){
   if($("pomoNum")) $("pomoNum").textContent = mmss(left);
   if($("pomoPhase")) $("pomoPhase").textContent = phaseName(pomo.phase);
   if($("pomoToggle")){
-    $("pomoToggle").textContent = pomo.running ? "暂停" : (left < total ? "继续" : "开始");
+    $("pomoToggle").textContent = pomo.running ? "暂停" : ((pomo.paused || left < total) ? "继续" : "开始");
   }
   const btn = $("pomoBtn");
   if(btn){
@@ -983,6 +1035,7 @@ function paintPomo(){
   const rk = recentTasks.join("|");
   const rc = $("pomoRecent");
   if(rc && rc.dataset.k !== rk){ rc.dataset.k = rk; renderRecentTasks(); }
+  paintPomoBar();
 }
 
 function beep(){
@@ -1019,18 +1072,21 @@ function pomoStart(){
   }catch(e){}
   pomo.endAt = Date.now() + Math.max(1000, pomo.remainMs);
   pomo.running = true;
+  pomo.paused = false;
   savePomo(); paintPomo();
 }
 function pomoPause(){
   if(!pomo.running) return;
   pomo.remainMs = Math.max(0, pomo.endAt - Date.now());
   pomo.running = false;
+  pomo.paused = true;
   savePomo(); paintPomo();
 }
 function setPhase(p){
   pomo.phase = p;
   pomo.remainMs = phaseTotalMs(p);
   pomo.running = false;
+  pomo.paused = false;
   pomo.endAt = 0;
   savePomo(); paintPomo();
 }
@@ -1154,6 +1210,7 @@ function initPomo(){
   loadPomo();
   const open = () => { paintPomo(); if(!$("pomoDlg").open) $("pomoDlg").showModal(); };
   $("pomoBtn").onclick = open;
+  if($("pomoBar")) $("pomoBar").onclick = open;
   $("pomoToggle").onclick = () => { pomo.running ? pomoPause() : pomoStart(); };
   $("pomoReset").onclick = () => { setPhase(pomo.phase); toast("已重置"); };
   $("pomoSkip").onclick = () => setPhase(pomo.phase === "focus" ? "short" : "focus");
