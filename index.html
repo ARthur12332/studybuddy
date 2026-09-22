@@ -162,8 +162,6 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 .toast.on{opacity:1;transform:translateX(-50%)}
 
 /* ---------- 番茄钟 ---------- */
-#pomoBtn{min-width:52px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
-#pomoBtn.live{background:rgba(255,255,255,.34)}
 .pomo{display:flex;flex-direction:column;align-items:center;padding:22px 18px 4px}
 .ring-wrap{position:relative;width:196px;height:196px;margin-bottom:16px}
 .ring{width:196px;height:196px;transform:rotate(-90deg)}
@@ -250,7 +248,6 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
   50%{box-shadow:0 10px 26px -8px rgba(91,108,255,1)}
 }
 .pomobar.rest{background:linear-gradient(135deg,#2f9e6e,#57c99a);box-shadow:0 8px 20px -10px rgba(47,158,110,.8)}
-#pomoBtn{min-width:58px;font-size:14px;font-weight:700}
 
 /* ---------- 考试倒计时 ---------- */
 .exam{
@@ -1011,12 +1008,6 @@ function paintPomo(){
   if($("pomoToggle")){
     $("pomoToggle").textContent = pomo.running ? "暂停" : ((pomo.paused || left < total) ? "继续" : "开始");
   }
-  const btn = $("pomoBtn");
-  if(btn){
-    btn.textContent = pomo.running ? mmss(left) : "🍅";
-    btn.classList.toggle("live", pomo.running);
-    btn.title = pomo.running ? "番茄钟进行中 · " + phaseName(pomo.phase) + " " + mmss(left) : "番茄钟";
-  }
   const t = todayPomo();
   if($("stPomo")) $("stPomo").textContent = t.count;
   if($("pomoStat")) $("pomoStat").textContent = "今日 " + t.count + " 个番茄 · 专注 " + t.minutes + " 分钟";
@@ -1208,7 +1199,6 @@ function renderStatDlg(){
 function initPomo(){
   loadPomo();
   const open = () => { paintPomo(); if(!$("pomoDlg").open) $("pomoDlg").showModal(); };
-  $("pomoBtn").onclick = open;
   if($("pomoBar")) $("pomoBar").onclick = open;
   $("pomoToggle").onclick = () => { pomo.running ? pomoPause() : pomoStart(); };
   $("pomoReset").onclick = () => { setPhase(pomo.phase); toast("已重置"); };
