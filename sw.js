@@ -1,5 +1,5 @@
 /* StudyBuddy Service Worker —— 让页面离线可用、可从主屏幕直接打开 */
-const CACHE = "studybuddy-v4";
+const CACHE = "studybuddy-v5";
 const ASSETS = [
   "./",
   "./index.html",
