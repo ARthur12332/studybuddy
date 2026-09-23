@@ -4,9 +4,14 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowInsetsController;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.ValueCallback;
@@ -81,6 +86,47 @@ public class MainActivity extends Activity {
             })();
             """;
 
+    /** 注入网页的脚本：把网页的配色同步到系统栏（状态栏 / 导航栏）。
+     *
+     *  <p>取色来源是网页自己的 &lt;meta name="theme-color"&gt; 和 --bg 变量 ——
+     *  <b>网页一行都不用改</b>：那个 meta 本来就跟着换肤和明暗主题在更新
+     *  （见 applyAccent()），原生这边照着它走就行。
+     *
+     *  <p>不这么做的话，状态栏会跟「系统深色模式」走：手机开着深色、网页却是浅色时，
+     *  顶上就横着一条近黑 #101218 的带子，跟渐变色顶栏割裂得很难看。
+     */
+    private static final String BARS_JS = """
+            (function(){
+              if (window.__sbBarsReady) { return; }
+              window.__sbBarsReady = true;
+              function push(){
+                try{
+                  var cs = getComputedStyle(document.documentElement);
+                  var meta = document.querySelector('meta[name="theme-color"]');
+                  var top = (meta && meta.getAttribute('content')) || cs.getPropertyValue('--brand') || '#5b6cff';
+                  var bottom = cs.getPropertyValue('--bg') || '#f4f5f9';
+                  StudyBuddyNative.setSystemBars(String(top).trim(), String(bottom).trim());
+                }catch(e){}
+              }
+              push();
+              if (!window.MutationObserver) { return; }
+              var meta = document.querySelector('meta[name="theme-color"]');
+              if (meta) {
+                new MutationObserver(push).observe(meta, { attributes: true, attributeFilter: ['content'] });
+              }
+              new MutationObserver(push).observe(document.documentElement,
+                { attributes: true, attributeFilter: ['style', 'data-theme'] });
+              if (document.body) {
+                new MutationObserver(push).observe(document.body,
+                  { attributes: true, attributeFilter: ['style', 'data-theme'] });
+              }
+            })();
+            """;
+
+    /* 取不到网页配色时的兜底：与网页 :root 里的默认值保持一致 */
+    private static final int FALLBACK_TOP = 0xFF5B6CFF;
+    private static final int FALLBACK_BOTTOM = 0xFFF4F5F9;
+
     private WebView web;
     private WebViewAssetLoader loader;
 
@@ -91,11 +137,19 @@ public class MainActivity extends Activity {
     /** 网页里点导入时挂在半空中的回调，等系统文件选择器返回。 */
     private ValueCallback<Uri[]> fileCallback;
 
-    /** 暴露给网页的唯一入口：只放一个保存方法，不把 Activity 递出去。 */
+    /** 暴露给网页的入口：只有「保存文件」和「同步系统栏配色」两个，
+     *  不把 Activity 递出去 —— 网页能碰到的面越小越好。 */
     public class Bridge {
         @JavascriptInterface
         public void saveFile(String name, String content) {
             requestSave(name, content);
+        }
+
+        @JavascriptInterface
+        public void setSystemBars(String statusColor, String navColor) {
+            final int status = parseColor(statusColor, FALLBACK_TOP);
+            final int nav = parseColor(navColor, FALLBACK_BOTTOM);
+            runOnUiThread(() -> applySystemBars(status, nav));
         }
     }
 
@@ -103,6 +157,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        /* 先用网页的默认配色垫上：否则进入应用那一瞬间，状态栏还是系统给的深色，
+           浅色界面上会先横一条黑带子再跳成品牌色。 */
+        applySystemBars(FALLBACK_TOP, FALLBACK_BOTTOM);
 
         loader = new WebViewAssetLoader.Builder()
                 .setDomain(ASSET_HOST)
@@ -152,6 +210,8 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 view.evaluateJavascript(BRIDGE_JS, null);
+                /* 页面就绪后立刻按网页配色刷一次系统栏（换肤、明暗切换时还会再刷） */
+                view.evaluateJavascript(BARS_JS, null);
             }
         });
 
@@ -232,6 +292,69 @@ public class MainActivity extends Activity {
         if (n.endsWith(".md")) return "text/markdown";
         if (n.endsWith(".txt")) return "text/plain";
         return "application/octet-stream";
+    }
+
+    /**
+     * 把网页给的配色写到系统栏上。
+     *
+     * <p>顺带把状态栏 / 导航栏的图标切成深色或浅色：底色亮就用深色图标，
+     * 否则用白色图标 —— 不然浅色导航栏上顶着一排白图标，等于没画。
+     */
+    private void applySystemBars(int statusColor, int navColor) {
+        Window w = getWindow();
+        w.setStatusBarColor(statusColor);
+        w.setNavigationBarColor(navColor);
+
+        boolean darkIconsOnStatus = isLightColor(statusColor);   // 底色浅 → 要深色图标
+        boolean darkIconsOnNav = isLightColor(navColor);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController c = w.getInsetsController();
+            if (c != null) {
+                int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                int appearance = 0;
+                if (darkIconsOnStatus) appearance |= WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
+                if (darkIconsOnNav) appearance |= WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                c.setSystemBarsAppearance(appearance, mask);
+            }
+        } else {
+            View decor = w.getDecorView();
+            int flags = decor.getSystemUiVisibility();
+            flags = darkIconsOnStatus
+                    ? (flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)
+                    : (flags & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                flags = darkIconsOnNav
+                        ? (flags | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+                        : (flags & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+            }
+            decor.setSystemUiVisibility(flags);
+        }
+    }
+
+    /** 解析 #RGB / #RRGGBB；网页给了认不出的值就退回默认色，绝不因为配色把应用搞崩。 */
+    private static int parseColor(String hex, int fallback) {
+        if (hex == null) return fallback;
+        String h = hex.trim();
+        try {
+            if (h.startsWith("#")) h = h.substring(1);
+            if (h.length() == 3) {
+                StringBuilder sb = new StringBuilder(6);
+                for (int i = 0; i < 3; i++) sb.append(h.charAt(i)).append(h.charAt(i));
+                h = sb.toString();
+            }
+            if (h.length() != 6) return fallback;
+            return 0xFF000000 | Integer.parseInt(h, 16);
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    /** 感知亮度（Rec.601），用来判断系统栏图标该用深色还是浅色。 */
+    private static boolean isLightColor(int color) {
+        double y = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255.0;
+        return y > 0.6;
     }
 
     @Override

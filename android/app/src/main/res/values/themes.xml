@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 用系统自带的 Material 主题，不引 AppCompat：
-         少一层依赖，构建更快，也更不容易出兼容问题。 -->
+         少一层依赖，构建更快，也更不容易出兼容问题。
+
+         刻意**不建 values-night**：这个壳的观感应该跟着网页走，而网页默认是浅色。
+         早先按系统深色模式分了一套深色系统栏，结果手机开着深色、网页却是浅色时，
+         顶上就横一条近黑（#101218）的带子，跟渐变色的顶栏割裂得很难看。
+
+         下面两个系统栏颜色只是「刚进应用那一瞬间」的垫底值；
+         页面一加载完，就由 MainActivity 按网页的 theme-color 和背景色变量覆盖掉
+         （换肤、切换明暗主题时也会跟着变）。 -->
     <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:colorPrimary">@color/brand</item>
         <item name="android:colorAccent">@color/brand</item>
