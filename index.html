@@ -118,6 +118,22 @@ main{flex:1;overflow-y:auto;padding:6px 16px 18px;-webkit-overflow-scrolling:tou
 }
 .note .foot{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:11.5px}
 .note .foot .sp{flex:1}
+/* 卡片底部的操作按钮：原来是无边框的 11.5px 小灰字，手机上又小又不显眼、
+   触控目标也不够。改成 32px 高的药丸按钮 —— 编辑用品牌渐变实心（一眼能看见），
+   复制用描边次级样式，两个都能舒服点到。 */
+.note .foot .act{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:36px;padding:0 16px;border-radius:999px;
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid var(--line);background:var(--card-2);color:var(--text);
+  transition:transform .12s ease;
+}
+.note .foot .act:active{transform:scale(.95)}
+.note .foot .act.edit{
+  border-color:transparent;color:#fff;
+  background:linear-gradient(135deg,var(--brand),var(--brand-2));
+  box-shadow:0 4px 14px -8px rgba(91,108,255,.95);
+}
 .link{border:0;background:none;color:var(--muted);font-size:11.5px;cursor:pointer;padding:2px 4px;font-family:inherit}
 .link:hover{color:var(--brand)}
 .empty{text-align:center;color:var(--muted);padding:56px 20px;font-size:13.5px;line-height:2}
@@ -1504,12 +1520,12 @@ function noteEl(n){
   foot.appendChild(time);
   const sp = document.createElement("span"); sp.className = "sp"; foot.appendChild(sp);
   const copy = document.createElement("button");
-  copy.className = "link"; copy.textContent = "复制";
+  copy.className = "act"; copy.textContent = "复制";
   copy.onclick = () => {
     navigator.clipboard?.writeText(n.text).then(() => toast("已复制"), () => toast("复制失败"));
   };
   const edit = document.createElement("button");
-  edit.className = "link"; edit.textContent = "编辑";
+  edit.className = "act edit"; edit.textContent = "编辑";
   edit.onclick = () => openEdit(n);
   foot.appendChild(copy); foot.appendChild(edit);
   card.appendChild(foot);
