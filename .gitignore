@@ -5,3 +5,14 @@ _v40*_*.html
 _v402*_*.html
 _v40_*.html
 _verify_*.html
+
+# Android 构建产物与本地配置（不入库）
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+# assets 里那份 index.html 是构建时从根目录复制过去的，不作为源码提交
+android/app/src/main/assets/index.html
+*.apk
+*.jks
+*.keystore

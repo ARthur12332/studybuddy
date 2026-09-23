@@ -1,0 +1,109 @@
+name: 构建 Android APK
+
+# 三种触发方式：
+#   1) 往 main 推代码（只在这几个路径变了时才跑，改 README 不会白跑一轮）
+#   2) 在 Actions 页面手动点「Run workflow」
+#   3) 发布 Release 时
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - 'icons/**'
+      - 'android/**'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 打包 debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 取代码
+        uses: actions/checkout@v4
+
+      - name: 装 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # 不用 gradle wrapper：仓库里没有 wrapper jar（这是二进制文件，不好放进代码里），
+      # 干脆在这里下一份固定版本的 Gradle，指向明确、不受镜像里预装版本影响。
+      - name: 装 Gradle 8.7
+        run: |
+          set -e
+          curl -fsSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q /tmp/gradle.zip -d "$HOME/gradle-dist"
+          echo "$HOME/gradle-dist/gradle-8.7/bin" >> "$GITHUB_PATH"
+
+      - name: 缓存 Gradle 依赖
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/notifications
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle', 'android/gradle.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # runner 上预装了 Android SDK（ANDROID_HOME 已设好），这里只是确保许可已接受
+      - name: 接受 Android SDK 许可
+        run: |
+          set -e
+          if command -v sdkmanager > /dev/null 2>&1; then
+            yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          fi
+          echo "ANDROID_HOME=${ANDROID_HOME:-未设置}"
+          ls "${ANDROID_HOME:-/usr/local/lib/android/sdk}/platforms" || true
+
+      - name: 构建 APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: 打印产物信息
+        working-directory: android
+        run: |
+          ls -lh app/build/outputs/apk/debug/
+          {
+            echo "### 构建产物"
+            echo ""
+            echo "| 文件 | 大小 |"
+            echo "| --- | --- |"
+            for f in app/build/outputs/apk/debug/*.apk; do
+              echo "| $(basename "$f") | $(du -h "$f" | cut -f1) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上传 APK（在 Actions 这个页面就能下载）
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudyBuddy-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      # 手动触发或发布 Release 时，额外挂一条固定链接，方便手机直接点开装
+      - name: 挂到 Release（手机上下载更方便）
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: StudyBuddy APK（自动构建）
+          body: |
+            由 GitHub Actions 自动构建的 debug 版 APK，点下面的文件名即可下载安装。
+
+            首次打开是空白的，用应用里的「导入」把桌面版的备份 JSON 搬过来即可。
+          files: android/app/build/outputs/apk/debug/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

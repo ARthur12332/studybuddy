@@ -1,0 +1,83 @@
+plugins {
+    id 'com.android.application'
+}
+
+/* ── 单一数据源 ────────────────────────────────────────────────────────
+   网页本体永远只有一份：仓库根目录的 index.html。
+   每次构建前自动复制进 app/src/main/assets/，所以：
+     · 改完 PWA 不用手动同步第二份（也就不会出现"改了 A 忘了改 B"）；
+     · assets 里那份不提交进 git（已写进根目录的 .gitignore）。
+   rootDir 是 android/，因此 "$rootDir/.." 就是仓库根。
+   ──────────────────────────────────────────────────────────────────── */
+def syncWebAssets = tasks.register('syncWebAssets', Copy) {
+    from("$rootDir/..") {
+        include 'index.html'
+    }
+    into layout.projectDirectory.dir('src/main/assets')
+}
+/* 用 matching().configureEach，不管 preBuild 是现在还是将来注册的都能挂上 */
+tasks.matching { it.name == 'preBuild' }.configureEach {
+    dependsOn syncWebAssets
+}
+
+/* ── 版本号自动跟随 index.html ────────────────────────────────────────
+   网页标题里那句「27 考研 · 间隔复习 · 番茄钟 · v4.1.0」就是唯一真相，
+   这里读出来当 APK 的 versionName，省得两边对不上。
+   读失败就退回默认值，不让构建挂掉。
+   ──────────────────────────────────────────────────────────────────── */
+def appVersionName = '4.1.0'
+def appVersionCode = 40100
+try {
+    def src = new File(rootDir, '../index.html')
+    if (src.exists()) {
+        def m = (src.getText('UTF-8') =~ /番茄钟 · v(\d+\.\d+\.\d+)/)
+        if (m.find()) {
+            appVersionName = m.group(1)
+            def p = (appVersionName =~ /^(\d+)\.(\d+)\.(\d+)$/)
+            if (p.find()) {
+                appVersionCode = p.group(1).toInteger() * 10000 +
+                                 p.group(2).toInteger() * 100 +
+                                 p.group(3).toInteger()
+            }
+        }
+    }
+} catch (Exception ignored) {
+    /* 保持默认版本号即可 */
+}
+
+android {
+    namespace 'com.zhaozhechuan.studybuddy'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.zhaozhechuan.studybuddy'
+        minSdk 24
+        targetSdk 34
+        versionCode appVersionCode
+        versionName appVersionName
+    }
+
+    /* BuildConfig.DEBUG 用来决定要不要开 WebView 远程调试 */
+    buildFeatures {
+        buildConfig true
+    }
+
+    /* 只做 debug 出包：用默认签名，装到手机上不需要配任何密钥。
+       哪天要上架再补 release 签名。 */
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    /* 只依赖这一个：官方 WebViewAssetLoader，把 assets 映射成虚拟 https 域名 */
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

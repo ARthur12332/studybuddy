@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 与应用内的品牌色 / 背景色保持一致，避免打开时两种蓝两种灰 -->
+    <color name="brand">#5B6CFF</color>
+    <color name="app_bg">#F4F5F9</color>
+    <color name="app_bg_dark">#101218</color>
+    <color name="ic_launcher_background">#5B6CFF</color>
+</resources>

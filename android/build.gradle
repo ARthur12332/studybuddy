@@ -1,0 +1,7 @@
+/* 顶层构建脚本：只声明插件版本，具体配置在 app/build.gradle 里。
+   版本组合是这套工程里最需要"别乱动"的地方：
+     AGP 8.5.2  +  Gradle 8.7  +  JDK 17  +  compileSdk 34
+   换其中任何一个都要一起换，否则构建会直接失败。 */
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}
