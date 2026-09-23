@@ -435,6 +435,83 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   color:var(--text);padding:10px 12px;font:inherit;font-size:16px;outline:none;
 }
 .dlg-body input+label{margin-top:12px}
+
+/* ---------- 间隔复习 ---------- */
+.revcard{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  margin-bottom:10px;box-shadow:var(--shadow);overflow:hidden;
+}
+.revcard.over{border-color:#ffcf5b}
+.revhead{
+  display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  border:0;background:none;color:var(--text);font:inherit;padding:11px 13px;cursor:pointer;
+}
+.revhead .rvi{flex:0 0 auto;font-size:16px;line-height:1}
+.revhead .rvt{flex:1;min-width:0;font-size:13.5px;font-weight:700}
+.revhead .rvt b{color:var(--brand);font-size:16px;font-variant-numeric:tabular-nums;margin:0 2px}
+.revhead .rvm{flex:0 0 auto;font-size:11px;color:var(--muted);white-space:nowrap}
+.revlist{max-height:42vh;overflow-y:auto;border-top:1px solid var(--line)}
+.revitem{padding:10px 13px;border-bottom:1px solid var(--line)}
+.revitem:last-child{border-bottom:0}
+.rvtx{
+  font-size:13.5px;line-height:1.5;word-break:break-word;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.rvmeta{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 7px}
+.rvact{display:flex;gap:7px}
+.rvact .mini{flex:1;padding:7px 0;font-size:13px;text-align:center}
+.rvact .mini.ok{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:600}
+.revbadge{cursor:pointer;border-color:var(--brand-soft);background:var(--brand-soft);color:var(--brand)}
+.revbtn{
+  width:46px;height:46px;flex:0 0 auto;border:1px solid var(--line);border-radius:14px;
+  background:var(--card-2);color:var(--muted);font-size:18px;line-height:1;cursor:pointer;
+}
+.revbtn:active{transform:scale(.96)}
+.revbtn.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
+.revset{display:flex;gap:7px;flex-wrap:wrap}
+.revset .mini{flex:0 0 auto;padding:7px 12px;font-size:12.5px}
+.revset .mini.on{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:600}
+
+/* ---------- 学习趋势 ---------- */
+.wow{display:flex;gap:10px;margin:10px 0 2px}
+.wow .cell{flex:1;min-width:0;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+.wow .cell .k{font-size:11.5px;color:var(--muted)}
+.wow .cell .v{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
+.wow .cell .s{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+.delta{font-weight:700;white-space:nowrap}
+.delta.up{color:var(--ok)}
+.delta.down{color:var(--danger)}
+.spark{display:block;width:100%;height:auto;margin:10px 0 0}
+.spark .axis{stroke:var(--line);stroke-width:1}
+.spark .cur{fill:none;stroke:var(--brand);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.spark .prev{fill:none;stroke:var(--muted);stroke-width:1.6;stroke-dasharray:4 4;opacity:.6}
+.spark .pt{fill:var(--brand)}
+.spark .xl{font-size:9px;fill:var(--muted)}
+.spark .yl{font-size:9px;fill:var(--muted)}
+.spark-legend{display:flex;gap:14px;justify-content:center;font-size:11px;color:var(--muted);padding:2px 0 4px}
+.spark-legend i{display:inline-block;width:14px;height:2px;vertical-align:3px;margin-right:4px;border-radius:2px;background:var(--brand)}
+.spark-legend i.dash{background:none;border-top:2px dashed var(--muted)}
+.donut-wrap{display:flex;align-items:center;gap:14px;margin:12px 0 2px}
+.donut{position:relative;flex:0 0 auto;width:104px;height:104px;border-radius:50%}
+.donut::after{content:"";position:absolute;inset:24px;border-radius:50%;background:var(--card)}
+.donut .dmid{
+  position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  font-size:10.5px;color:var(--muted);line-height:1.4;
+}
+.donut .dmid b{font-size:14px;color:var(--text);font-variant-numeric:tabular-nums}
+.legend{flex:1;min-width:0}
+.legend .li{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0;color:var(--muted)}
+.legend .li i{flex:0 0 auto;width:9px;height:9px;border-radius:3px}
+.legend .li .ln{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.legend .li .lv{flex:0 0 auto;font-variant-numeric:tabular-nums}
+.cmp{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:12px;color:var(--muted)}
+.cmp .cn{flex:0 0 auto;width:62px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.cmp .cbars{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cmp .cb{display:block;height:7px;border-radius:99px;background:var(--card-2);overflow:hidden}
+.cmp .cb i{display:block;height:100%;border-radius:99px;min-width:2px}
+.cmp .cb.p i{background:var(--line)}
+.cmp .cv{flex:0 0 auto;width:66px;text-align:right;font-size:10.5px;line-height:1.5;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -442,7 +519,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 
   <header>
     <div class="bar">
-      <h1>StudyBuddy<small id="subtitle">27 考研 · 倒计时 · 分科统计 · v3.0</small></h1>
+      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 学习趋势 · v3.1</small></h1>
       <button class="icon-btn" id="themeBtn" title="切换深浅色" aria-label="切换深浅色主题">◐</button>
       <button class="icon-btn" id="menuBtn" title="更多" aria-label="更多功能菜单">⋯<span class="thedot" id="bkDot"></span></button>
     </div>
@@ -452,6 +529,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
       <span>连续 <b id="stStreak">0</b> 天</span>
       <span>🍅 今日 <b id="stPomo">0</b> 个</span>
       <span>🎯 目标 <b id="stGoal">0/0</b></span>
+      <span>🔁 待复习 <b id="stRev">0</b></span>
     </div>
   </header>
 
@@ -461,6 +539,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
       <span class="ename" id="examName">27 考研初试</span>
       <span class="go">设置 ›</span>
     </div>
+    <div class="revcard" id="reviewCard" hidden></div>
     <button class="pomobar" id="pomoBar" type="button">
       <span class="picon">🍅</span>
       <span class="ptxt" id="pomoBarText">开始一个番茄钟</span>
@@ -482,6 +561,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
     <div class="subjbar" id="subjBar"></div>
     <div class="crow">
       <textarea id="composer" rows="1" placeholder="记点什么… 例如：数学二 做了 30 道极限题"></textarea>
+      <button class="revbtn" id="revBtn" type="button" title="把这条加入间隔复习" aria-label="把这条加入间隔复习" aria-pressed="false">🔁</button>
       <button id="send" disabled>发送</button>
     </div>
   </footer>
@@ -493,6 +573,9 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
     <textarea id="editText"></textarea>
     <label style="margin-top:12px">科目</label>
     <select id="editSubj"></select>
+    <label style="margin-top:12px">间隔复习</label>
+    <div class="revset" id="editRev"></div>
+    <p class="hint" id="editRevHint" style="margin-top:8px"></p>
   </div>
   <div class="dlg-actions">
     <button class="btn danger" id="editDel">删除</button>
@@ -629,7 +712,11 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   <div class="stat-body">
     <h3>专注统计</h3>
     <div id="statRows"></div>
-    <div class="sub-h">分科专注（本周）</div>
+    <div class="sub-h">本周 vs 上周</div>
+    <div id="statWow"></div>
+    <div class="sub-h">科目占比 · 本周</div>
+    <div id="statDonut"></div>
+    <div class="sub-h">分科对比（本周 / 上周）</div>
     <div id="statSubj"></div>
     <div class="chart" id="statChart"></div>
     <div class="chart-cap">最近 7 天专注时长（分钟）</div>
@@ -822,6 +909,162 @@ const DEFAULT_GOALS = [
 ];
 const SUBJ_HUES = [222, 268, 340, 152, 200, 30, 300, 12];
 
+/* ---------------- 间隔重复 / 复习提醒 ----------------
+   给笔记加一个 reviewAt（下次复习日，YYYY-MM-DD）。有它才进复习队列，
+   空字符串 = 不复习。reviewStage 记录「已完成的复习轮次」，决定下一次的间隔；
+   走完 REV_STEPS 最后一档即毕业，reviewAt 清空但 reviewStage 留在 REV_MAX，
+   这样「已毕业」和「从没排过复习」两种状态还能区分开（见 revGraduated()）。 */
+const REV_STEPS = [1, 2, 4, 7, 15, 30, 60];
+const REV_MAX = REV_STEPS.length;
+
+function revNormDay(v){
+  return (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) ? v : "";
+}
+function revToday(){ return dayKey(new Date()); }
+function dayShift(days){
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + days);
+  return dayKey(d);
+}
+function dayDiff(fromKey, toKey){
+  const a = new Date(fromKey + "T00:00:00"), b = new Date(toKey + "T00:00:00");
+  if(isNaN(a.getTime()) || isNaN(b.getTime())) return 0;
+  return Math.round((b - a) / 86400000);
+}
+function revActive(n){ return !!(n && n.reviewAt); }
+/* 到期的排前面，同一天里按原顺序（notes 本身是正序追加的） */
+function revDueList(){
+  const t = revToday();
+  return notes.filter(n => revActive(n) && n.reviewAt <= t)
+              .sort((a, b) => (a.reviewAt < b.reviewAt ? -1 : a.reviewAt > b.reviewAt ? 1 : 0));
+}
+function revQueued(){
+  const t = revToday();
+  return notes.filter(n => revActive(n) && n.reviewAt > t).length;
+}
+function revGraduated(){ return notes.filter(n => n && !n.reviewAt && n.reviewStage >= REV_MAX).length; }
+/* 复习状态的短标签，列表徽章与复习卡共用，避免两处文案漂移 */
+function revShort(n){
+  if(!revActive(n)) return "";
+  const d = dayDiff(revToday(), n.reviewAt);
+  if(d < 0) return "复习逾期 " + (-d) + " 天";
+  if(d === 0) return "今天该复习";
+  return "复习 · " + d + " 天后";
+}
+function revStageText(n){
+  const s = Math.min(Math.max(0, n.reviewStage || 0), REV_MAX);
+  return s >= REV_MAX ? "已毕业" : "第 " + (s + 1) + "/" + REV_MAX + " 轮";
+}
+function revMark(id, ok){
+  const n = notes.find(x => x.id === id);
+  if(!n || !revActive(n)) return;
+  n.reviewLast = revToday();
+  if(ok){
+    const next = Math.min((n.reviewStage || 0) + 1, REV_MAX);
+    n.reviewStage = next;
+    if(next >= REV_MAX){
+      n.reviewAt = "";
+      toast("已完成 " + REV_MAX + " 轮复习，这条毕业啦 🎉");
+    }else{
+      n.reviewAt = dayShift(REV_STEPS[next]);
+      toast("很好 · " + REV_STEPS[next] + " 天后再复习一遍");
+    }
+  }else{
+    /* 记不住就回到第一档重来，这是间隔重复里最关键的一步 */
+    n.reviewStage = 0;
+    n.reviewAt = dayShift(REV_STEPS[0]);
+    toast("已重新排入队列，明天再来一遍");
+  }
+  persist();
+}
+function revLater(id){
+  const n = notes.find(x => x.id === id);
+  if(!n) return;
+  n.reviewAt = dayShift(1);
+  persist();
+  toast("明天再提醒你");
+}
+function shortText(t, n){
+  const s = String(t == null ? "" : t).replace(/\s+/g, " ").trim();
+  return s.length > n ? s.slice(0, n) + "…" : s;
+}
+let revOpen = false;      // 首页复习卡展开状态（只在本次会话内有效，不落盘）
+let revDraft = false;     // 输入框旁「加入复习」开关
+
+function renderReviewCard(){
+  const box = $("reviewCard"); if(!box) return;
+  const due = revDueList();
+  if(!due.length){
+    /* 没有到期项就整块收起来，不占首页空间 */
+    box.hidden = true;
+    box.classList.remove("over");
+    box.innerHTML = "";
+    return;
+  }
+  const overdue = due.filter(n => n.reviewAt < revToday()).length;
+  box.hidden = false;
+  box.classList.toggle("over", overdue > 0);
+  let html =
+    '<button class="revhead" id="revHead" type="button" aria-expanded="' + (revOpen ? "true" : "false") + '">' +
+      '<span class="rvi">🔁</span>' +
+      '<span class="rvt">今天该复习 <b>' + due.length + '</b> 条</span>' +
+      '<span class="rvm">' + (overdue ? "逾期 " + overdue + " · " : "") +
+        "队列 " + revQueued() + " · 已毕业 " + revGraduated() + (revOpen ? " ▲" : " ▼") + "</span>" +
+    "</button>";
+  if(revOpen){
+    html += '<div class="revlist">' + due.map((n, i) =>
+      '<div class="revitem">' +
+        '<div class="rvtx">' + esc(shortText(n.text, 96)) + "</div>" +
+        '<div class="rvmeta">' +
+          (n.subj ? '<span class="badge"><span class="dot" style="background:' + subjColor(n.subj) + '"></span>' + esc(n.subj) + "</span>" : "") +
+          '<span class="badge">' + esc(revShort(n)) + " · " + esc(revStageText(n)) + "</span>" +
+        "</div>" +
+        '<div class="rvact">' +
+          /* 用下标而不是 id 做 data 属性：id 来自存储/导入，直接拼进 HTML 属性会被注坏 */
+          '<button class="mini ok" type="button" data-rv="ok" data-ri="' + i + '">记住了</button>' +
+          '<button class="mini" type="button" data-rv="no" data-ri="' + i + '">还不熟</button>' +
+          '<button class="mini" type="button" data-rv="later" data-ri="' + i + '">明天</button>' +
+        "</div>" +
+      "</div>").join("") + "</div>";
+  }
+  box.innerHTML = html;
+}
+function initReview(){
+  const box = $("reviewCard");
+  if(box){
+    box.addEventListener("click", (e) => {
+      if(e.target.closest("#revHead")){ revOpen = !revOpen; renderReviewCard(); return; }
+      const btn = e.target.closest("button[data-rv]");
+      if(!btn) return;
+      const n = revDueList()[Number(btn.dataset.ri)];
+      if(!n) return;
+      const act = btn.dataset.rv;
+      if(act === "ok") revMark(n.id, true);
+      else if(act === "no") revMark(n.id, false);
+      else revLater(n.id);
+      /* 这条可能已毕业/改期，列表里的徽章与卡片都要跟着变 */
+      renderReviewCard(); renderStats(); renderList(true);
+    });
+  }
+  const rb = $("revBtn");
+  if(rb){
+    rb.onclick = () => {
+      revDraft = !revDraft;
+      rb.classList.toggle("on", revDraft);
+      rb.setAttribute("aria-pressed", revDraft ? "true" : "false");
+      toast(revDraft ? "之后记的都会加入复习（明天开始）" : "已关闭「加入复习」");
+    };
+  }
+  const revBox = $("editRev");
+  if(revBox){
+    revBox.addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-rvd]"); if(!b) return;
+      const v = b.dataset.rvd;
+      editRevPick = v === "off" ? -1 : Number(v);
+      markEditRev(editRevPick === -1 ? "" : dayShift(editRevPick));
+    });
+  }
+}
+
 /* 把任意来源的数据规整成合法形状：缺 text / tags / createdAt 都不该让页面崩掉 */
 function normalizeNote(n){
   if(!n || typeof n !== "object") return null;
@@ -829,13 +1072,22 @@ function normalizeNote(n){
   let tags = Array.isArray(n.tags) ? n.tags.filter(t => typeof t === "string" && t) : parseTags(text);
   let createdAt = typeof n.createdAt === "string" ? n.createdAt : "";
   if(!createdAt || isNaN(new Date(createdAt).getTime())) createdAt = new Date().toISOString();
+  /* 复习字段同样要兜底：导入的备份可能来自旧版本（没有这些字段），
+     也可能被人手工改坏（reviewStage 是字符串、reviewAt 是乱码日期）。 */
+  let stage = Number(n.reviewStage);
+  if(!isFinite(stage) || stage < 0) stage = 0;
+  stage = Math.min(Math.floor(stage), REV_MAX);
+  const reviewAt = revNormDay(n.reviewAt);
   return {
     id: (n.id && String(n.id)) || uid(),
     text: text,
     tags: tags,
     subj: typeof n.subj === "string" ? n.subj : "",
     createdAt: createdAt,
-    updatedAt: typeof n.updatedAt === "string" ? n.updatedAt : null
+    updatedAt: typeof n.updatedAt === "string" ? n.updatedAt : null,
+    reviewAt: reviewAt,
+    reviewStage: stage,
+    reviewLast: revNormDay(n.reviewLast)
   };
 }
 function load(){
@@ -1137,6 +1389,7 @@ function renderStats(){
   while(days.has(dayKey(d))){ streak++; d.setDate(d.getDate() - 1); }
   $("stStreak").textContent = streak;
   if($("stPomo")) $("stPomo").textContent = todayPomo().count;
+  if($("stRev")) $("stRev").textContent = revDueList().length;
   if($("stGoal")){
     const gl = goalLog[today] || {};
     const gd = goals.filter(g => gl[g.id]).length;
@@ -1148,6 +1401,7 @@ function render(){
   renderStats();
   renderChips();
   renderExam();
+  renderReviewCard();      // 复习卡在列表之上，先于列表渲染
   renderList();
 }
 /* 只重建列表区（含目标卡与分页），搜索输入时用它，避免整页重画 */
@@ -1201,7 +1455,7 @@ function noteEl(n){
   p.textContent = n.text;
   card.appendChild(p);
 
-  if(n.subj || (n.tags && n.tags.length)){
+  if(n.subj || (n.tags && n.tags.length) || revActive(n)){
     const tg = document.createElement("div");
     tg.className = "tags";
     if(n.subj){
@@ -1219,6 +1473,14 @@ function noteEl(n){
       b.onclick = () => { filterTag = t; render(); };          // 同上
       tg.appendChild(b);
     });
+    if(revActive(n)){
+      const rb = document.createElement("button");
+      rb.className = "badge revbadge";
+      rb.title = "点一下改复习设置";
+      rb.textContent = "🔁 " + revShort(n) + " · " + revStageText(n);
+      rb.onclick = () => openEdit(n);
+      tg.appendChild(rb);
+    }
     card.appendChild(tg);
   }
 
@@ -1247,7 +1509,14 @@ function addNote(){
   if(!text) return;
   /* 统一走 normalizeNote()：补全 tags/subj/updatedAt 等字段，
      与导入、跨标签合并走同一条规范化路径，避免两处字段漂移。 */
-  notes.push(normalizeNote({ text, tags: parseTags(text), subj: pickSubj || "", createdAt: new Date().toISOString() }));
+  const note = normalizeNote({ text, tags: parseTags(text), subj: pickSubj || "", createdAt: new Date().toISOString() });
+  if(revDraft){
+    /* 「加入复习」开关打开时：第一次复习排在明天，之后由 revMark() 按艾宾浩斯推进 */
+    note.reviewAt = dayShift(REV_STEPS[0]);
+    note.reviewStage = 0;
+    note.reviewLast = "";
+  }
+  notes.push(note);
   persist();
   composer.value = "";
   composer.style.height = "auto";
@@ -1256,7 +1525,7 @@ function addNote(){
   send.disabled = true;
   filterTag = ""; query = ""; searchEl.value = "";
   render();
-  toast("已记录");
+  toast(revDraft ? "已记录 · 明天开始复习" : "已记录");
   list.scrollTop = 0;
 }
 function fillEditSubj(current){
@@ -1271,10 +1540,37 @@ function fillEditSubj(current){
   sel.innerHTML = html;
   sel.value = cur;
 }
+/* 编辑弹层里的复习档位：null = 这次没改；-1 = 移出复习；其它数字 = 距今天数 */
+let editRevPick = null;
+const EDIT_REV_OPTS = [["off", "不复习"], ["1", "明天"], ["3", "3 天后"], ["7", "7 天后"], ["15", "15 天后"], ["30", "30 天后"]];
+function markEditRev(cur){
+  const box = $("editRev"); if(!box) return;
+  const d = cur ? dayDiff(revToday(), cur) : null;
+  box.querySelectorAll("button[data-rvd]").forEach(b => {
+    const v = b.dataset.rvd;
+    const on = v === "off" ? !cur : (d !== null && Number(v) === d);
+    b.classList.toggle("on", on);
+  });
+}
+function renderEditRev(n){
+  const box = $("editRev"); if(!box) return;
+  editRevPick = null;
+  const cur = (n && n.reviewAt) ? n.reviewAt : "";
+  box.innerHTML = EDIT_REV_OPTS.map(o =>
+    '<button class="mini" type="button" data-rvd="' + o[0] + '">' + o[1] + "</button>").join("");
+  markEditRev(cur);
+  const hint = $("editRevHint");
+  if(hint){
+    hint.textContent = cur
+      ? "已排入复习：下次 " + cur + "（" + revStageText(n) + "）。间隔会按 1/2/4/7/15/30/60 天自动往后推。"
+      : "未排入复习。想在忘掉之前被提醒，选「明天」或「3 天后」即可。";
+  }
+}
 function openEdit(n){
   editingId = n.id;
   editText.value = n.text;
   fillEditSubj(n.subj || "");
+  renderEditRev(n);
   editDlg.showModal();
   setTimeout(() => editText.focus(), 50);
 }
@@ -1319,6 +1615,16 @@ $("editSave").onclick = () => {
     n.text = t;
     n.tags = parseTags(t);
     n.subj = $("editSubj") ? $("editSubj").value : (n.subj || "");   // 支持重新归类
+    /* 复习设置：只有在弹层里点了档位才动，没点就保持原样（避免误清空已排好的复习） */
+    if(editRevPick !== null){
+      if(editRevPick === -1){
+        n.reviewAt = ""; n.reviewStage = 0; n.reviewLast = "";
+      }else{
+        n.reviewStage = 0;                       // 手选档位 = 从第一轮重新开始
+        n.reviewAt = dayShift(editRevPick);
+      }
+      editRevPick = null;
+    }
     n.updatedAt = new Date().toISOString();
     persist(); render(); toast("已保存");
   }
@@ -1331,7 +1637,7 @@ $("editDel").onclick = () => {
   const idx = notes.indexOf(n);
   notes.splice(idx, 1);
   persist();
-  renderStats(); renderChips(); renderList();
+  renderStats(); renderChips(); renderReviewCard(); renderList();
   const brief = n.text.length > 14 ? n.text.slice(0, 14) + "…" : n.text;
   toastUndo("已删除「" + brief + "」", () => {
     notes.splice(Math.min(idx, notes.length), 0, n);
@@ -1925,16 +2231,134 @@ function startOfMonthKey(){
   const d = new Date(); d.setHours(0,0,0,0); d.setDate(1);
   return dayKey(d);
 }
+/* ---- 趋势：按周/按天聚合（图表全部用原生 DOM + SVG，不引图表库）---- */
+/* 返回某一周的 7 个 dayKey：offsetWeeks=0 是本周，-1 是上周，周一为一周之始 */
+function weekDays(offsetWeeks){
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + offsetWeeks * 7);
+  const out = [];
+  for(let i = 0; i < 7; i++){
+    const x = new Date(d); x.setDate(d.getDate() + i);
+    out.push(dayKey(x));
+  }
+  return out;
+}
+const dayMinutes = (k) => (pomoLog[k] && pomoLog[k].minutes) || 0;
+function sumKeys(keys){
+  let count = 0, minutes = 0;
+  keys.forEach(k => {
+    const v = pomoLog[k];
+    if(v){ count += v.count || 0; minutes += v.minutes || 0; }
+  });
+  return { count: count, minutes: minutes };
+}
+function subjMinutesKeys(keys){
+  const out = {};
+  keys.forEach(k => {
+    const v = pomoLog[k]; if(!v) return;
+    const sub = v.subj || {};
+    for(const s in sub){
+      const o = out[s] || { count: 0, minutes: 0 };
+      o.count += sub[s].count || 0;
+      o.minutes += sub[s].minutes || 0;
+      out[s] = o;
+    }
+  });
+  return out;
+}
+/* 上周为 0 时不做除法：直接按「有/无」给 100% 或 0%，避免出现 Infinity% */
+function pctDelta(cur, prev){
+  if(!prev) return cur ? 100 : 0;
+  return Math.round((cur - prev) / prev * 100);
+}
+function deltaHtml(d){
+  if(!d) return '<span class="delta">持平</span>';
+  return '<span class="delta ' + (d > 0 ? "up" : "down") + '">' + (d > 0 ? "↑" : "↓") + Math.abs(d) + "%</span>";
+}
+/* 7 天双折线：本周实线、上周虚线，同一条横轴（周一→周日）便于直接比高低 */
+function sparkSvg(cur7, prev7){
+  const W = 300, H = 96, PL = 22, PR = 8, PT = 10, PB = 16;
+  let max = 1;
+  cur7.concat(prev7).forEach(v => { if(v > max) max = v; });
+  const xs = (i) => PL + i * (W - PL - PR) / 6;
+  const ys = (v) => PT + (1 - v / max) * (H - PT - PB);
+  const pts = (a) => a.map((v, i) => xs(i) + "," + ys(v)).join(" ");
+  let s = '<svg class="spark" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="本周与上周每日专注时长对比曲线">';
+  [0, 0.5, 1].forEach(t => {
+    const y = PT + t * (H - PT - PB);
+    s += '<line class="axis" x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '"/>';
+  });
+  s += '<text class="yl" x="' + (PL - 5) + '" y="' + (PT + 3) + '" text-anchor="end">' + max + "</text>";
+  s += '<text class="yl" x="' + (PL - 5) + '" y="' + (H - PB + 3) + '" text-anchor="end">0</text>';
+  s += '<polyline class="prev" points="' + pts(prev7) + '"/>';
+  s += '<polyline class="cur" points="' + pts(cur7) + '"/>';
+  cur7.forEach((v, i) => { s += '<circle class="pt" cx="' + xs(i) + '" cy="' + ys(v) + '" r="2.6"/>'; });
+  ["一","二","三","四","五","六","日"].forEach((t, i) => {
+    s += '<text class="xl" x="' + xs(i) + '" y="' + (H - 3) + '" text-anchor="middle">' + t + "</text>";
+  });
+  return s + "</svg>";
+}
+function renderWow(){
+  const box = $("statWow"); if(!box) return;
+  const cur = sumKeys(weekDays(0)), prev = sumKeys(weekDays(-1));
+  /* 两周都是 0：别画一条贴着底边的直线，直接给一句人话 */
+  if(!cur.minutes && !prev.minutes){
+    box.innerHTML = '<div class="stat-row"><span>这周和上周都还没有专注记录，开一个番茄钟试试</span><b>—</b></div>';
+    return;
+  }
+  const dMin = pctDelta(cur.minutes, prev.minutes), dCnt = pctDelta(cur.count, prev.count);
+  box.innerHTML =
+    '<div class="wow">' +
+      '<div class="cell"><div class="k">本周专注</div><div class="v">' + fmtDur(cur.minutes) + "</div>" +
+        '<div class="s">' + cur.count + " 个番茄 · 比上周 " + deltaHtml(dMin) + "</div></div>" +
+      '<div class="cell"><div class="k">上周专注</div><div class="v">' + fmtDur(prev.minutes) + "</div>" +
+        '<div class="s">' + prev.count + " 个番茄 · 番茄数 " + deltaHtml(dCnt) + "</div></div>" +
+    "</div>" +
+    sparkSvg(weekDays(0).map(dayMinutes), weekDays(-1).map(dayMinutes)) +
+    '<div class="spark-legend"><span><i></i>本周</span><span><i class="dash"></i>上周</span></div>';
+}
+/* 科目占比环形图：conic-gradient 画环 + 图例，纯 CSS，不用 canvas/SVG 库 */
+function renderDonut(){
+  const box = $("statDonut"); if(!box) return;
+  const week = subjMinutesKeys(weekDays(0));
+  const keys = Object.keys(week).filter(k => week[k].minutes > 0).sort((a, b) => week[b].minutes - week[a].minutes);
+  const total = keys.reduce((s, k) => s + week[k].minutes, 0);
+  if(!total){
+    box.innerHTML = '<div class="stat-row"><span>本周还没有分科数据（番茄钟里选个科目再开始）</span><b>—</b></div>';
+    return;
+  }
+  let acc = 0;
+  const segs = keys.map(k => {
+    const p = week[k].minutes / total * 100;
+    const seg = subjColor(k) + " " + acc.toFixed(2) + "% " + (acc + p).toFixed(2) + "%";
+    acc += p;
+    return seg;
+  });
+  box.innerHTML =
+    '<div class="donut-wrap">' +
+      '<div class="donut" style="background:conic-gradient(from -90deg,' + segs.join(",") + ')">' +
+        '<div class="dmid"><b>' + fmtDur(total) + "</b>本周合计</div>" +
+      "</div>" +
+      '<div class="legend">' + keys.map(k =>
+        '<div class="li"><i style="background:' + subjColor(k) + '"></i>' +
+        '<span class="ln">' + esc(k || "未分类") + "</span>" +
+        '<span class="lv">' + Math.round(week[k].minutes / total * 100) + "% · " + week[k].minutes + " 分</span></div>"
+      ).join("") + "</div>" +
+    "</div>";
+}
 function renderStatDlg(){
   const rows = [
     ["今日", todayPomo()],
-    ["本周", sumSince(startOfWeekKey())],
+    ["本周", sumKeys(weekDays(0))],
     ["本月", sumSince(startOfMonthKey())],
     ["累计", sumAllPomo()]
   ];
   $("statRows").innerHTML = rows.map((r) =>
     '<div class="stat-row"><span>' + r[0] + '</span><b>' + r[1].count + " 个 · " + fmtDur(r[1].minutes) + "</b></div>"
   ).join("");
+
+  renderWow();
+  renderDonut();
 
   const days = [];
   for(let i = 6; i >= 0; i--){
@@ -2243,41 +2667,41 @@ function addSubject(){
 }
 
 /* ---------------- 分科统计 ---------------- */
-function subjMinutes(fromKey){
-  const out = {};
-  for(const k in pomoLog){
-    if(k < fromKey) continue;
-    const sub = pomoLog[k].subj || {};
-    for(const s in sub){
-      const o = out[s] || {count:0, minutes:0};
-      o.count += sub[s].count || 0;
-      o.minutes += sub[s].minutes || 0;
-      out[s] = o;
-    }
-  }
-  return out;
-}
+/* 分科「本周 vs 上周」双条对比：上面一条本周（科目色），下面一条上周（灰底），
+   右边给本周分钟数和涨跌幅 —— 直接回答「数学二是在涨还是在掉」。 */
 function renderSubjStats(){
   const box = $("statSubj"); if(!box) return;
-  const week = subjMinutes(startOfWeekKey());
-  const keys = Object.keys(week).filter(k => week[k].minutes > 0).sort((a,b) => week[b].minutes - week[a].minutes);
+  const cur = subjMinutesKeys(weekDays(0)), prev = subjMinutesKeys(weekDays(-1));
+  const all = {};
+  Object.keys(cur).forEach(k => { all[k] = 1; });
+  Object.keys(prev).forEach(k => { all[k] = 1; });
+  const keys = Object.keys(all).filter(k => (cur[k] && cur[k].minutes) || (prev[k] && prev[k].minutes))
+                   .sort((a, b) => ((cur[b] ? cur[b].minutes : 0) - (cur[a] ? cur[a].minutes : 0)));
   if(!keys.length){
     box.innerHTML = '<div class="stat-row"><span>本周还没有分科数据（番茄钟里选科目）</span><b>—</b></div>';
     return;
   }
   let max = 1;
-  keys.forEach(k => { if(week[k].minutes > max) max = week[k].minutes; });
+  keys.forEach(k => {
+    const cm = (cur[k] && cur[k].minutes) || 0, pm = (prev[k] && prev[k].minutes) || 0;
+    if(cm > max) max = cm;
+    if(pm > max) max = pm;
+  });
   box.innerHTML = keys.map(k => {
-    const w = Math.max(4, Math.round(week[k].minutes / max * 100));
-    return '<div class="hbar"><span class="n">' + esc(k || "未分类") + "</span>" +
-           '<span class="t"><i style="width:' + w + '%"></i></span>' +
-           '<span class="m">' + fmtDur(week[k].minutes) + "</span></div>";
+    const cm = (cur[k] && cur[k].minutes) || 0, pm = (prev[k] && prev[k].minutes) || 0;
+    const w1 = Math.max(2, Math.round(cm / max * 100)), w2 = Math.max(2, Math.round(pm / max * 100));
+    return '<div class="cmp"><span class="cn">' + esc(k || "未分类") + "</span>" +
+             '<span class="cbars">' +
+               '<span class="cb"><i style="width:' + w1 + '%;background:' + subjColor(k) + '"></i></span>' +
+               '<span class="cb p"><i style="width:' + w2 + '%"></i></span>' +
+             "</span>" +
+             '<span class="cv">' + cm + " 分<br>" + deltaHtml(pctDelta(cm, pm)) + "</span></div>";
   }).join("");
 }
 
 /* ---------------- 备份 ---------------- */
 function backupPayload(){
-  return { app:"StudyBuddy", version:3, exportedAt:new Date().toISOString(),
+  return { app:"StudyBuddy", version:4, exportedAt:new Date().toISOString(),
            notes, pomoLog, exam, subjects, goals, goalLog,
            sessions: sessions.concat(archivedSessions), recentTasks };
 }
@@ -2361,7 +2785,8 @@ function importData(text){
       const key = nk(x.text, createdAt);
       if(have.has(key) || seenInFile.has(key)){ dup++; return; }   // 与现有记录、以及本次文件内重复的都跳过
       seenInFile.add(key);
-      notes.push(normalizeNote({ id: null, text: x.text, tags: x.tags, subj: x.subj, createdAt, updatedAt: x.updatedAt }));
+      notes.push(normalizeNote({ id: null, text: x.text, tags: x.tags, subj: x.subj, createdAt, updatedAt: x.updatedAt,
+                                 reviewAt: x.reviewAt, reviewStage: x.reviewStage, reviewLast: x.reviewLast }));
       have.add(key);
       added++;
     });
@@ -2542,6 +2967,7 @@ function openSched(){
 
 function initExtra(){
   renderSubjBar(); renderPomoSubj(); renderExam(); renderBackupTip();
+  initReview();                                            // 复习卡与「加入复习」开关的事件委托
   $("examStrip").onclick = openExam;
   $("examSave").onclick = saveExam;
   $("examCancel").onclick = () => $("examDlg").close();
