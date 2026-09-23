@@ -53,10 +53,6 @@ html[data-theme="light"]{
   --pf-num-shadow:0 4px 30px rgba(var(--brand-glow),.28);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-/* [hidden] 必须真的藏住元素：下面有不少组件自带 display:flex/inline-flex，
-   而类选择器的优先级高于 UA 的 [hidden]{display:none} —— 少这一行，
-   凡是「设了 hidden 又自带 display」的元素都会照常显示（更多设置折叠区就踩过）。 */
-[hidden]{display:none !important}
 html,body{height:100%}
 body{
   margin:0; background:var(--bg); color:var(--text);
@@ -81,25 +77,8 @@ h1 small{display:block;font-size:11px;font-weight:400;opacity:.85;letter-spacing
   display:flex;align-items:center;justify-content:center;
 }
 .icon-btn:active{transform:scale(.94)}
-.stat{margin-top:10px;font-size:12px;opacity:.92;display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center}
+.stat{margin-top:10px;font-size:12px;opacity:.92;display:flex;gap:14px;flex-wrap:wrap}
 .stat b{font-size:14px}
-/* 顶栏分两「组」而不是六个平铺项：前三项是纯信息，后三项点得动。
-   分成两组后换行是以组为单位——窄屏上信息一行、入口一行，不会出现
-   「第 5 项留在上一行、第 6 项孤零零掉到下一行」那种难看的断法。 */
-.stacts{display:flex;gap:14px;flex-wrap:wrap;flex:0 0 auto}
-.statbtn{
-  display:inline-flex;flex:0 0 auto;align-items:center;gap:4px;
-  border:0;background:none;color:inherit;font:inherit;font-size:12px;
-  padding:2px 0;margin:0;cursor:pointer;border-radius:6px;
-}
-.statbtn .stgo{font-size:11px;opacity:.65;margin-left:-1px}
-.statbtn:active{opacity:.6}
-.statbtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-/* 有待复习时给一个「白底红字」的小药丸：顶栏背景是主题色渐变，
-   红字直接压上去对比度不够；白底既能读清，也不会像加红点那样喧宾夺主。 */
-.statbtn.due{background:rgba(255,255,255,.94);color:#c0392b;padding:2px 9px}
-.statbtn.due b{color:#c0392b}
-.statbtn.due .stgo{color:#c0392b;opacity:.75}
 
 /* ---------- 搜索 / 标签 ---------- */
 .toolbar{padding:12px 16px 4px;background:var(--bg)}
@@ -216,14 +195,6 @@ dialog::backdrop{background:rgba(12,14,22,.5);backdrop-filter:blur(2px)}
 .menu-row:last-child{border-bottom:0;border-radius:0 0 18px 18px}
 .menu-row .em{width:20px;text-align:center}
 .menu-row small{display:block;color:var(--muted);font-size:11.5px}
-/* 菜单分组标题：11 个平铺入口混着「查看 / 设置 / 数据」三类东西，
-   加三行小标题分成四组，找东西不用再从第一行读到第十行。 */
-.menu-sec{
-  padding:13px 18px 6px;font-size:11px;font-weight:700;letter-spacing:.08em;
-  color:var(--muted);background:var(--card-2);
-}
-.menu-sec:first-child{padding-top:16px;border-radius:18px 18px 0 0}
-.menu-sec + .menu-row{padding-top:12px}
 .toast{
   position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);
   transform:translateX(-50%) translateY(8px);
@@ -368,31 +339,6 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 .pomo-modes{display:flex;gap:8px;margin-bottom:16px}
 .pomo-actions{display:flex;gap:9px;width:100%;margin-bottom:14px}
 .pomo-actions .btn{padding:13px 0;font-size:15px}
-/* 「更多设置」折叠区：番茄钟原本一屏塞 11 个控件，其实最短路径只有
-   「选预设 → 开始」两步。把时长 / 自定义 / 今日统计 / 自动记日志折进来，
-   默认只留主路径；折叠时用右侧小字把当前时长说清楚，不用展开也知道现在是 25 还是 45。 */
-.morebtn{
-  display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;
-  border:1px solid var(--line);background:none;color:var(--muted);
-  border-radius:12px;padding:9px 12px;margin-bottom:12px;
-  font:inherit;font-size:12.5px;cursor:pointer;text-align:left;
-}
-.morebtn:active{background:var(--card-2)}
-.morebtn .ml{flex:0 0 auto;font-weight:600;color:var(--text)}
-.morebtn .ms{flex:1;min-width:0;text-align:right;font-variant-numeric:tabular-nums}
-.morebtn .car{flex:0 0 auto;font-size:10px;transition:transform .18s ease}
-.morebtn.on .car{transform:rotate(180deg)}
-.morebtn.on{border-color:transparent;background:var(--card-2)}
-.pomo-more{
-  width:100%;box-sizing:border-box;padding:12px 12px 2px;margin-bottom:12px;
-  border:1px solid var(--line);border-radius:14px;background:var(--card-2);
-  display:flex;flex-direction:column;align-items:center;
-}
-.pomo-more .pomo-modes{margin-bottom:12px;flex-wrap:wrap;justify-content:center}
-.pomo-more .pomo-stat{width:100%}
-.pomo-more .switch{padding:8px 0 3px}
-/* 番茄钟里的一句引导：第一眼看不清该先点哪儿时，给它一条最短路径 */
-.pomohint{font-size:12px;color:var(--muted);text-align:center;line-height:1.75;padding:0 0 12px;width:100%}
 .pomo-stat{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.9}
 .switch{display:flex;align-items:center;gap:8px;justify-content:center;font-size:12.5px;color:var(--muted);padding:10px 0 2px;text-align:left}
 .switch input{width:16px;height:16px;accent-color:var(--brand);flex:0 0 auto}
@@ -455,15 +401,8 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;
   box-shadow:0 8px 20px -10px rgba(var(--brand-glow),.85);
   font:inherit;text-align:left;
-  transition:padding .18s ease,box-shadow .18s ease;
 }
 .pomobar:active{transform:scale(.99)}
-/* 没在计时的时候收薄一点：首页上半屏少占 14px，内容能多露一行。
-   一旦开始过（run / paused 都算「有动过」）就不再是 idle，自动长回原样。 */
-.pomobar.idle{padding:9px 14px;box-shadow:0 6px 16px -12px rgba(var(--brand-glow),.9)}
-.pomobar.idle .picon{font-size:17px}
-.pomobar.idle .ptxt{font-size:13.5px;font-weight:600}
-.pomobar.idle .pmeta{font-size:14px;opacity:.92}
 .pomobar .picon{flex:0 0 auto;font-size:21px;line-height:1}
 .pomobar .ptxt{flex:1;min-width:0;font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pomobar .pmeta{flex:0 0 auto;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.3px}
@@ -475,34 +414,18 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 }
 .pomobar.rest{background:linear-gradient(135deg,#2f9e6e,#57c99a);box-shadow:0 8px 20px -10px rgba(47,158,110,.8)}
 
-/* ---------- 考试倒计时 ----------
-   它一天真正被看一次就够，所以做成「一行小字」的窄条：数字仍是主色加粗（扫一眼就有数），
-   名字退成次要灰，整体从原来的 ~50px 压到 ~34px，首页第一屏让位给内容。 */
+/* ---------- 考试倒计时 ---------- */
 .exam{
-  display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
-  border-radius:10px;padding:6px 11px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;
+  display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:9px 12px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;
 }
 .exam:active{transform:scale(.995)}
-.exam .cd{flex:0 0 auto;font-size:12px;color:var(--muted)}
-.exam .cd b{font-size:15px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums;margin-right:2px}
-.exam .ename{flex:1;min-width:0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.exam .go{flex:0 0 auto;font-size:11px;color:var(--muted);opacity:.7}
+.exam .cd{flex:0 0 auto;font-size:12.5px;color:var(--muted)}
+.exam .cd b{font-size:21px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums;margin-right:3px}
+.exam .ename{flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exam .go{flex:0 0 auto;font-size:11.5px;color:var(--muted)}
 .exam.urgent{border-color:var(--brand);background:var(--brand-soft)}
 .exam.urgent .cd b{color:var(--danger)}
-.exam.urgent .ename{color:var(--text)}
-
-/* ---------- 首次使用引导 ----------
-   只在「一条记录都没有 且 从没点过知道了」时出现，点一次就永久收起，
-   不会变成常驻广告位。三步讲的是这个应用真正的核心动线，而不是功能罗列。 */
-.guide{background:var(--brand-soft);border-radius:14px;padding:12px 13px 10px;margin-bottom:10px}
-.guide .gtitle{font-size:12.5px;font-weight:700;color:var(--brand);margin-bottom:7px}
-.glist{margin:0;padding-left:19px}
-.glist li{font-size:12.5px;color:var(--text);line-height:1.9;margin-bottom:1px}
-.glist li b{color:var(--brand);font-weight:700}
-.gclose{
-  margin-top:8px;border:0;background:none;color:var(--muted);font:inherit;
-  font-size:12px;padding:2px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;
-}
 
 /* ---------- 科目 ---------- */
 /* 科目条：允许换行、绝不横向滚动，保证每个科目文字完整可见 */
@@ -688,14 +611,6 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 .revset{display:flex;gap:7px;flex-wrap:wrap}
 .revset .mini{flex:0 0 auto;padding:7px 12px;font-size:12.5px}
 .revset .mini.on{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:600}
-/* 档位按钮上方的「当前状态」行：档位集合与间隔算法同源后不会再出现「一个都不亮」，
-   但导入进来的旧数据仍可能有任意日期，所以这行永远把真实状态写清楚，
-   避免用户把「没高亮」误读成「没排进复习」而随手点一个档位、把复习日期改掉。 */
-.revnow{
-  display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);
-  padding:2px 0 8px;line-height:1.6;
-}
-.revnow b{color:var(--brand);font-weight:700}
 
 /* ---------- 学习趋势 ---------- */
 .wow{display:flex;gap:10px;margin:10px 0 2px}
@@ -744,7 +659,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 
   <header>
     <div class="bar">
-      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄钟 · v4.0</small></h1>
+      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄预设 · v3.4</small></h1>
       <button class="icon-btn" id="themeBtn" title="切换深浅色" aria-label="切换深浅色主题">◐</button>
       <button class="icon-btn" id="menuBtn" title="更多" aria-label="更多功能菜单">⋯<span class="thedot" id="bkDot"></span></button>
     </div>
@@ -752,24 +667,13 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
       <span>今天 <b id="stToday">0</b> 条</span>
       <span>共 <b id="stTotal">0</b> 条</span>
       <span>连续 <b id="stStreak">0</b> 天</span>
-      <div class="stacts">
-        <button class="statbtn" id="stPomoBtn" type="button" title="查看专注统计">🍅 今日 <b id="stPomo">0</b> 个<span class="stgo">›</span></button>
-        <button class="statbtn" id="stGoalBtn" type="button" title="设置今天的每日目标">🎯 目标 <b id="stGoal">0/0</b><span class="stgo">›</span></button>
-        <button class="statbtn" id="stRevBtn" type="button" title="查看今天该复习的记录">🔁 待复习 <b id="stRev">0</b><span class="stgo">›</span></button>
-      </div>
+      <span>🍅 今日 <b id="stPomo">0</b> 个</span>
+      <span>🎯 目标 <b id="stGoal">0/0</b></span>
+      <span>🔁 待复习 <b id="stRev">0</b></span>
     </div>
   </header>
 
   <div class="toolbar">
-    <div class="guide" id="guide" hidden>
-      <div class="gtitle">三步就能用起来</div>
-      <ol class="glist">
-        <li><b>选科目</b>底部那排点一下，字变彩色就是选中了</li>
-        <li><b>写一句</b>例如「数学二 做了 30 道极限题」，回车保存</li>
-        <li><b>想复习</b>点输入框右边的 🔁，它会按 1/2/4/7/15/30/60 天自己冒出来</li>
-      </ol>
-      <button class="gclose" id="guideClose" type="button">知道了，不再显示</button>
-    </div>
     <div class="exam" id="examStrip" title="点一下设置考试日期">
       <span class="cd"><b id="examDays">--</b>天后</span>
       <span class="ename" id="examName">27 考研初试</span>
@@ -810,7 +714,6 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
     <label style="margin-top:12px">科目</label>
     <select id="editSubj"></select>
     <label style="margin-top:12px">间隔复习</label>
-    <div class="revnow" id="editRevNow"></div>
     <div class="revset" id="editRev"></div>
     <p class="hint" id="editRevHint" style="margin-top:8px"></p>
   </div>
@@ -822,21 +725,17 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 </dialog>
 
 <dialog id="menuDlg">
-  <div class="menu-sec">查看</div>
-  <button class="menu-row" data-act="sched"><span class="em">📅</span><span>完成的学习日程<small>每个番茄完成的记录，可按天复盘</small></span></button>
-  <button class="menu-row" data-act="stats"><span class="em">📊</span><span>专注统计<small>本周 / 本月 / 累计，科目分布与趋势</small></span></button>
-  <div class="menu-sec">设置</div>
-  <button class="menu-row" data-act="goals"><span class="em">🎯</span><span>每日目标设置<small>每天都要做的事，天天重置</small></span></button>
-  <button class="menu-row" data-act="subjects"><span class="em">🏷</span><span>科目设置<small>数二 / 英二 / 政治 / 半导体物理</small></span></button>
-  <button class="menu-row" data-act="appearance"><span class="em">🎨</span><span>外观<small>深浅色 + 主题色，挑个喜欢的</small></span></button>
-  <div class="menu-sec">数据</div>
   <button class="menu-row" data-act="copyJson"><span class="em">📋</span><span>复制备份到剪贴板<small>粘到微信收藏 / 备忘录，换手机也不怕</small></span></button>
   <button class="menu-row" data-act="exportJson"><span class="em">⤓</span><span>导出 JSON 备份文件<small>完整数据，可再导入回来</small></span></button>
   <button class="menu-row" data-act="exportMd"><span class="em">📄</span><span>导出 Markdown<small>按日期分组，方便放进笔记软件</small></span></button>
   <button class="menu-row" data-act="import"><span class="em">⤒</span><span>从文件导入<small>与现有记录合并（重复的会跳过）</small></span></button>
   <button class="menu-row" data-act="pasteJson"><span class="em">📥</span><span>从剪贴板导入<small>把之前复制的备份粘回来</small></span></button>
-  <div class="menu-sec">危险操作</div>
+  <button class="menu-row" data-act="sched"><span class="em">📅</span><span>完成的学习日程<small>每个番茄完成的记录，可按天复盘</small></span></button>
+  <button class="menu-row" data-act="goals"><span class="em">🎯</span><span>每日目标设置<small>每天都要做的事，天天重置</small></span></button>
+  <button class="menu-row" data-act="appearance"><span class="em">🎨</span><span>外观<small>深浅色 + 主题色，挑个喜欢的</small></span></button>
+  <button class="menu-row" data-act="subjects"><span class="em">🏷</span><span>科目设置<small>数二 / 英二 / 政治 / 半导体物理</small></span></button>
   <button class="menu-row" data-act="clear"><span class="em">🗑</span><span>清空全部<small>谨慎，建议先备份</small></span></button>
+  <button class="menu-row" data-act="close"><span class="em">✕</span><span>关闭</span></button>
 </dialog>
 
 <dialog id="pomoDlg">
@@ -899,7 +798,18 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
     </div>
     <div class="chips pchips" id="pomoRecent"></div>
 
-    <p class="pomohint" id="pomoHint">点上面的预设一下就开跑，或者先写上这次要做什么</p>
+    <div class="pomo-modes" id="pomoModes">
+      <button class="chip" data-min="15">15 分钟</button>
+      <button class="chip on" data-min="25">25 分钟</button>
+      <button class="chip" data-min="45">45 分钟</button>
+    </div>
+
+    <div class="pomo-custom">
+      <span>自定义专注</span>
+      <input type="number" id="pomoCustom" min="1" max="180" step="5" inputmode="numeric" value="25">
+      <span>分钟</span>
+      <button class="mini" id="pomoCustomSet">设定</button>
+    </div>
 
     <div class="pomo-actions">
       <button class="btn primary" id="pomoToggle">开始</button>
@@ -907,31 +817,11 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
       <button class="btn" id="pomoSkip">跳过</button>
     </div>
 
-    <button class="morebtn" id="pomoMore" type="button" aria-expanded="false" aria-controls="pomoMoreBox">
-      <span class="ml">更多设置</span>
-      <span class="ms" id="pomoMoreSum">25 分钟</span>
-      <span class="car">▾</span>
-    </button>
-    <div class="pomo-more" id="pomoMoreBox" hidden>
-      <div class="pomo-modes" id="pomoModes">
-        <button class="chip" data-min="15">15 分钟</button>
-        <button class="chip on" data-min="25">25 分钟</button>
-        <button class="chip" data-min="45">45 分钟</button>
-      </div>
-
-      <div class="pomo-custom">
-        <span>自定义专注</span>
-        <input type="number" id="pomoCustom" min="1" max="180" step="5" inputmode="numeric" value="25">
-        <span>分钟</span>
-        <button class="mini" id="pomoCustomSet">设定</button>
-      </div>
-
-      <div class="pomo-stat" id="pomoStat">今日 0 个番茄 · 专注 0 分钟</div>
-      <label class="switch">
-        <input type="checkbox" id="pomoAutoLog" checked>
-        <span>完成一个番茄时，自动往日志里记一条</span>
-      </label>
-    </div>
+    <div class="pomo-stat" id="pomoStat">今日 0 个番茄 · 专注 0 分钟</div>
+    <label class="switch">
+      <input type="checkbox" id="pomoAutoLog" checked>
+      <span>完成一个番茄时，自动往日志里记一条</span>
+    </label>
   </div>
   <div class="dlg-actions">
     <button class="btn" id="pomoSched">学习日程</button>
@@ -1726,11 +1616,7 @@ function renderStats(){
   while(days.has(dayKey(d))){ streak++; d.setDate(d.getDate() - 1); }
   $("stStreak").textContent = streak;
   if($("stPomo")) $("stPomo").textContent = todayPomo().count;
-  const revN = revDueList().length;
-  if($("stRev")) $("stRev").textContent = revN;
-  /* 有待复习就把顶栏那个入口点亮成小药丸，让人一眼看到「今天有东西要复习」 */
-  const revBtn = $("stRevBtn");
-  if(revBtn) revBtn.classList.toggle("due", revN > 0);
+  if($("stRev")) $("stRev").textContent = revDueList().length;
   if($("stGoal")){
     const gl = goalLog[today] || {};
     const gd = goals.filter(g => gl[g.id]).length;
@@ -1739,9 +1625,6 @@ function renderStats(){
 }
 let listLimit = LIST_STEP;                                // 当前渲染条数上限（分页）
 function render(){
-  /* 已经有记录了，首次引导就没必要占着位置（不必等用户手动点掉） */
-  const gd = $("guide");
-  if(gd && !gd.hidden && notes.length) gd.hidden = true;
   renderStats();
   renderChips();
   renderExam();
@@ -1884,33 +1767,17 @@ function fillEditSubj(current){
   sel.innerHTML = html;
   sel.value = cur;
 }
-/* 编辑弹层里的复习档位：null = 这次没改；-1 = 移出复习；其它数字 = 距今天数。
-   档位直接由 REV_STEPS 生成——原来手写的 [1,3,7,15,30] 和算法实际用的
-   [1,2,4,7,15,30,60] 不同源，第 3 轮推出的「4 天后」在弹层里一个按钮都不亮，
-   用户会以为没排进复习，随手点个「3 天后」就把复习日期改掉了（真的会改坏数据）。
-   改成同源之后，算法能推出来的天数，弹层里一定有对应的档位。 */
+/* 编辑弹层里的复习档位：null = 这次没改；-1 = 移出复习；其它数字 = 距今天数 */
 let editRevPick = null;
-const EDIT_REV_OPTS = [["off", "不复习"]].concat(
-  REV_STEPS.map(d => [String(d), d === 1 ? "明天" : d + " 天后"])
-);
+const EDIT_REV_OPTS = [["off", "不复习"], ["1", "明天"], ["3", "3 天后"], ["7", "7 天后"], ["15", "15 天后"], ["30", "30 天后"]];
 function markEditRev(cur){
   const box = $("editRev"); if(!box) return;
   const d = cur ? dayDiff(revToday(), cur) : null;
   box.querySelectorAll("button[data-rvd]").forEach(b => {
     const v = b.dataset.rvd;
-    const on = v === "off" ? !cur : (d !== null && d >= 0 && Number(v) === d);
+    const on = v === "off" ? !cur : (d !== null && Number(v) === d);
     b.classList.toggle("on", on);
   });
-  const now = $("editRevNow");
-  if(now){
-    if(!cur){
-      now.textContent = "当前：未排入复习";
-    }else{
-      const dd = dayDiff(revToday(), cur);
-      const when = dd < 0 ? "已逾期 " + (-dd) + " 天" : (dd === 0 ? "就是今天" : dd + " 天后");
-      now.textContent = "当前：" + when + "（" + cur.slice(5).replace("-", "/") + "）";
-    }
-  }
 }
 function renderEditRev(n){
   const box = $("editRev"); if(!box) return;
@@ -1919,17 +1786,11 @@ function renderEditRev(n){
   box.innerHTML = EDIT_REV_OPTS.map(o =>
     '<button class="mini" type="button" data-rvd="' + o[0] + '">' + o[1] + "</button>").join("");
   markEditRev(cur);
-  const now = $("editRevNow");
-  if(now){
-    now.innerHTML = cur
-      ? "<span>" + now.textContent + "</span><b>· " + esc(revStageText(n)) + "</b>"
-      : "<span>" + now.textContent + "</span>";
-  }
   const hint = $("editRevHint");
   if(hint){
     hint.textContent = cur
-      ? "间隔按 1/2/4/7/15/30/60 天往后推（上面就是这些档位）。选别的档位 = 从第一轮重新开始。"
-      : "想在忘掉之前被提醒，选「明天」或「2 天后」即可；不想要就选「不复习」。";
+      ? "已排入复习：下次 " + cur + "（" + revStageText(n) + "）。间隔会按 1/2/4/7/15/30/60 天自动往后推。"
+      : "未排入复习。想在忘掉之前被提醒，选「明天」或「3 天后」即可。";
   }
 }
 function openEdit(n){
@@ -2011,11 +1872,7 @@ $("editDel").onclick = () => {
   });
 };
 
-$("menuBtn").onclick = () => { menuDlg.scrollTop = 0; menuDlg.showModal(); };
-/* 菜单里全是按钮、没有输入框，误触遮罩不会丢任何东西，
-   所以这里破例允许「点空白关闭」——原来只能滚到底点那个多余的「关闭」。
-   其它弹层（编辑 / 番茄钟 / 设置）仍保持「点遮罩不关」的防误触策略。 */
-menuDlg.addEventListener("click", (e) => { if(e.target === menuDlg) menuDlg.close(); });
+$("menuBtn").onclick = () => menuDlg.showModal();
 menuDlg.addEventListener("click", (e) => {
   const row = e.target.closest(".menu-row");
   if(!row) return;
@@ -2033,8 +1890,6 @@ menuDlg.addEventListener("click", (e) => {
     pasteImport();
   } else if(act === "sched"){
     openSched();
-  } else if(act === "stats"){
-    openStats();
   } else if(act === "goals"){
     openGoals();
   } else if(act === "appearance"){
@@ -2246,7 +2101,6 @@ function paintPomoBar(){
   bar.classList.toggle("rest", !isFocus);
   bar.classList.toggle("live", !!pomo.running);
   const started = !!pomo.running || !!pomo.paused || left < total;
-  bar.classList.toggle("idle", !started);      // 空闲时才收薄，开始过就保持满高
   const detail = isFocus ? [(pomo.subj || ""), (pomo.task || "").trim()].filter(Boolean).join(" · ") : "";
   let state, meta;
   if(!started){
@@ -2485,20 +2339,6 @@ function paintPomo(){
   const t = todayPomo();
   if($("stPomo")) $("stPomo").textContent = t.count;
   if($("pomoStat")) $("pomoStat").textContent = "今日 " + t.count + " 个番茄 · 专注 " + t.minutes + " 分钟";
-  /* 折叠态也要能看见「现在是多少分钟」，否则 45 分钟的人每次都得多点一下 */
-  const msum = $("pomoMoreSum");
-  if(msum) msum.textContent = (pomo.phase === "focus" ? pomo.focusMin : phaseMinutes(pomo.phase)) +
-                              " 分钟 · 今日 " + t.count + " 个";
-  /* 一句引导：没写任务时告诉用户「点预设就能跑」，写好了就提示去点开始；
-     真的跑起来之后不需要再多嘴，直接让位。 */
-  const ph = $("pomoHint");
-  if(ph){
-    const busy = pomo.running || pomo.paused;
-    ph.hidden = busy;
-    if(!busy) ph.textContent = (pomo.task || "").trim()
-      ? "点下面的「开始」进入沉浸倒计时"
-      : "点上面的预设一下就开跑，或者先写上这次要做什么";
-  }
   document.querySelectorAll("#pomoModes .chip").forEach((c) => {
     c.classList.toggle("on", Number(c.dataset.min) === pomo.focusMin);
   });
@@ -2637,24 +2477,17 @@ function pomoTick(){
   tickIdle = 0;
   renderStats(); paintPomoBar(); tickPomoCross();
 }
-/* 跨天守卫：这几个「只读当天」的视图不会因为时间流逝自动更新，
-   页面连着开一整夜时，昨晚的今日目标会停在已完成状态、番茄条停在昨天、
-   首页那个「还有 N 天」会少算一天、列表里 🔁 徽章的相对天数也不会变。
-   所以这里直接调 render()：它串起了 renderStats / renderChips / renderExam /
-   renderReviewCard / renderList（目标卡在 renderList 里），一次全部归位，
-   比逐个补 renderGoals + renderReviewCard 更不容易漏。
-   代价是分页会收回到第一屏——但「新的一天」正是该从最早一条重新看的时候。
-   只在 dayKey 真的变了、且页面可见时才跑，成本可忽略。 */
-/* 基线日在**脚本加载时**就定下来（而不是等第一次 tick 才发现 lastTickDay 是空的）：
-   否则页面刚打开的头 30 秒里这个守卫还没「上膛」，恰好卡在零点打开的话，
-   第一次 tick 只会把基线填成新的一天然后直接 return，昨天的视图就永远留在那儿了。 */
-let lastTickDay = dayKey(new Date());
+/* 跨天守卫：这两个「只读当天」的视图不会因为时间流逝自动更新，
+   页面连着开一整夜时，昨晚的今日目标会一直停在已完成状态、番茄条也停在昨天。
+   成本极低——只有 dayKey 真的变了才重画，且只在页面可见时跑。 */
+let lastTickDay = "";
 function tickPomoCross(){
   if(document.hidden) return;
   const k = dayKey(new Date());
+  if(!lastTickDay){ lastTickDay = k; return; }
   if(k === lastTickDay) return;
   lastTickDay = k;
-  render();
+  renderGoals();                                          // 新的一天，勾选状态归零
   paintPomoBar();
 }
 /* ---- 自定义专注时长 ---- */
@@ -2752,19 +2585,11 @@ function addPreset(name, min, subj){
 function delPreset(id){
   const i = presets.findIndex(x => x.id === id);
   if(i < 0) return;
-  const p = presets[i];
-  const at = i;
+  const nm = presets[i].name;
   presets.splice(i, 1);
   saveRaw(KEY_PRESETS, presets);
   renderPresets(); renderPresetList();
-  /* 删除给 5 秒反悔窗口：预设是手打出来的名字和时长，误删了不该重打一遍。
-     复用笔记删除已经有的那套撤销条，不新造一种 UI。 */
-  toastUndo("已删除预设「" + p.name + "」", () => {
-    presets.splice(Math.min(at, presets.length), 0, p);
-    saveRaw(KEY_PRESETS, presets);
-    renderPresets(); renderPresetList();
-    toast("已恢复预设「" + p.name + "」");
-  });
+  toast("已删除预设「" + nm + "」");
 }
 function renderPresetList(){
   const sel = $("presetSubj");
@@ -2939,13 +2764,6 @@ function renderDonut(){
       ).join("") + "</div>" +
     "</div>";
 }
-/* 专注统计的统一入口：番茄钟里、⋯ 菜单里、顶栏「🍅 今日」都走这里。
-   之前只能从番茄钟弹窗绕进去（开番茄钟 → 点统计 → 关番茄钟），现在三处直达。 */
-function openStats(){
-  if($("pomoDlg") && $("pomoDlg").open) $("pomoDlg").close();
-  renderStatDlg();
-  $("statDlg").showModal();
-}
 function renderStatDlg(){
   const rows = [
     ["今日", todayPomo()],
@@ -2981,16 +2799,7 @@ function renderStatDlg(){
 
 function initPomo(){
   loadPomo();
-  /* 每次打开都回到最短路径：预设收起、更多设置收起。
-     番茄钟是「打开 → 点预设 → 开始」的高频动作，上次的展开状态不该带过来。 */
-  const open = () => {
-    paintPomo();
-    if(!$("pomoDlg").open){
-      openPresetPanel(false);
-      openPomoMore(false);
-      $("pomoDlg").showModal();
-    }
-  };
+  const open = () => { paintPomo(); if(!$("pomoDlg").open) $("pomoDlg").showModal(); };
   if($("pomoBar")) $("pomoBar").onclick = open;
   initPomoFull();
   $("pomoToggle").onclick = () => { pomo.running ? pomoPause() : pomoStart(); };
@@ -3002,14 +2811,18 @@ function initPomo(){
     if(pomo.phase === "focus" && (pomo.running || pomo.paused) && !confirm("跳过这轮专注？本轮不会计入统计。")) return;
     setPhase(pomo.phase === "focus" ? "short" : "focus");
   };
-  /* 关掉番茄钟时顺手收起预设管理与「更多设置」，下次打开是干净的一条主路径 */
-  $("pomoClose").onclick = () => { openPresetPanel(false); openPomoMore(false); $("pomoDlg").close(); };
+  /* 关掉番茄钟时顺手收起预设管理面板，下次打开是干净的一条预设 */
+  $("pomoClose").onclick = () => { openPresetPanel(false); $("pomoDlg").close(); };
   $("pomoAutoLog").onchange = (e) => { pomo.autoLog = !!e.target.checked; savePomo(); };
   $("pomoCustomSet").onclick = applyCustomFocus;
   $("pomoCustom").addEventListener("keydown", (e) => {
     if(e.key === "Enter"){ e.preventDefault(); applyCustomFocus(); }
   });
-  $("pomoStats").onclick = openStats;
+  $("pomoStats").onclick = () => {
+    if($("pomoDlg").open) $("pomoDlg").close();
+    renderStatDlg();
+    $("statDlg").showModal();
+  };
   $("pomoSched").onclick = openSched;
   $("pomoTask").addEventListener("input", (e) => { pomo.task = e.target.value; savePomo(); paintPomo(); });
   $("statClose").onclick = () => $("statDlg").close();
@@ -3585,70 +3398,6 @@ function openSched(){
   $("schedDlg").showModal();
 }
 
-/* ---------------- 入口归位：顶栏可点项 / 首次引导 / 番茄钟折叠区 ----------------
-   这一块解决的都是同一类问题——东西在，但「找不到、看不出能点、不知道先点哪儿」。
-   顶栏那三个数字原来是纯文字，用户看到「待复习 3」却点不动；
-   番茄钟一屏 11 个控件，最短路径（选预设 → 开始）反而被淹了；
-   新用户第一次打开则完全没有任何提示。 */
-const KEY_GUIDE = "studybuddy.guide.seen";
-
-/* 番茄钟「更多设置」：默认收起，把主路径留出来 */
-let pomoMoreOpen = false;
-function openPomoMore(on){
-  pomoMoreOpen = !!on;
-  const box = $("pomoMoreBox"), btn = $("pomoMore");
-  if(box) box.hidden = !pomoMoreOpen;
-  if(btn){
-    btn.classList.toggle("on", pomoMoreOpen);
-    btn.setAttribute("aria-expanded", pomoMoreOpen ? "true" : "false");
-    const ml = btn.querySelector(".ml");
-    if(ml) ml.textContent = pomoMoreOpen ? "收起设置" : "更多设置";
-  }
-  const ms = $("pomoMoreSum");
-  if(ms) ms.hidden = pomoMoreOpen;      // 展开后时长就在眼前，摘要退场
-}
-
-function initTopNav(){
-  /* ① 顶栏「🔁 待复习」→ 有到期的就展开复习卡并滚过去；没有就说明白现在是什么状态 */
-  const revBtn = $("stRevBtn");
-  if(revBtn) revBtn.onclick = () => {
-    if(!revDueList().length){
-      const q = revQueued(), g = revGraduated();
-      toast(q ? "今天没有到期的 · 队列里还排着 " + q + " 条"
-              : (g ? "今天没有到期的 · 已毕业 " + g + " 条"
-                   : "还没有排入复习 · 写记录时点 🔁 就行"));
-      return;
-    }
-    revOpen = true;
-    renderReviewCard();
-    const box = $("reviewCard");
-    if(box) try{ box.scrollIntoView({ block: "nearest", behavior: "smooth" }); }catch(e){}
-  };
-  /* ② 顶栏「🎯 目标」→ 目标设置（原来只能从 ⋯ 菜单进） */
-  const goalBtn = $("stGoalBtn");
-  if(goalBtn) goalBtn.onclick = () => openGoals();
-  /* ③ 顶栏「🍅 今日」→ 专注统计 */
-  const pomoBtn = $("stPomoBtn");
-  if(pomoBtn) pomoBtn.onclick = () => openStats();
-
-  /* ④ 首次引导：只在「一条记录都没有 且 从没点过知道了」时出现，点一次永久收起 */
-  const gd = $("guide");
-  if(gd){
-    let seen = false;
-    try{ seen = !!localStorage.getItem(KEY_GUIDE); }catch(e){}
-    gd.hidden = seen || notes.length > 0;
-    const gc = $("guideClose");
-    if(gc) gc.onclick = () => {
-      gd.hidden = true;
-      try{ localStorage.setItem(KEY_GUIDE, new Date().toISOString()); }catch(e){}
-      toast("好的，不再显示");
-    };
-  }
-
-  /* ⑤ 番茄钟「更多设置」开关 */
-  const mb = $("pomoMore");
-  if(mb) mb.onclick = () => openPomoMore(!pomoMoreOpen);
-}
 function initExtra(){
   renderSubjBar(); renderPomoSubj(); renderExam(); renderBackupTip();
   initReview();                                            // 复习卡与「加入复习」开关的事件委托
@@ -3747,7 +3496,6 @@ function boot(){
   load();
   loadExtra();
   initPomo();
-  initTopNav();                                            // 顶栏入口 + 首次引导 + 番茄钟折叠区
   initExtra();
   try{ const d = localStorage.getItem(KEY_DRAFT); if(d){ composer.value = d; send.disabled = false; } }catch(e){}
   render();
@@ -3759,13 +3507,11 @@ function boot(){
   document.querySelectorAll("dialog").forEach(d => d.addEventListener("close", () => {
     if(pendingReload){ pendingReload = false; doReload(); }
   }));
-  /* 回到前台时：唤醒被挂起的音频保证番茄提醒有声；顺手查一次跨天
-     （页面在后台时定时器被节流甚至冻结，「隔夜再打开」不一定赶得上 30 秒那一拍） */
+  /* 回到前台时唤醒被挂起的音频，保证番茄提醒有声 */
   document.addEventListener("visibilitychange", () => {
-    if(!document.hidden){
-      if(audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
-      tickPomoCross();
-    }else{
+    if(!document.hidden && audioCtx && audioCtx.state === "suspended"){
+      audioCtx.resume().catch(() => {});
+    }else if(document.hidden){
       flushDraft();          // 切后台前把防抖中的草稿立即落盘，避免丢字
     }
   });
