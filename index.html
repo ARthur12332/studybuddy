@@ -384,9 +384,14 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 .morebtn.on .car{transform:rotate(180deg)}
 .morebtn.on{border-color:transparent;background:var(--card-2)}
 .pomo-more{
-  width:100%;box-sizing:border-box;padding:12px 12px 2px;margin-bottom:12px;
+  width:100%;box-sizing:border-box;margin-bottom:0;padding:0;
   border:1px solid var(--line);border-radius:14px;background:var(--card-2);
+  --pad-t:12px;--pad-b:2px;
+}
+.pomo-more.open{margin-bottom:12px}
+.pomo-more>.collapse-in{
   display:flex;flex-direction:column;align-items:center;
+  padding-left:12px;padding-right:12px;
 }
 .pomo-more .pomo-modes{margin-bottom:12px;flex-wrap:wrap;justify-content:center}
 .pomo-more .pomo-stat{width:100%}
@@ -612,10 +617,61 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 }
 /* 预设管理面板：增删都留在番茄钟页里，不再跳菜单弹窗 */
 .preset-panel{
-  width:100%;box-sizing:border-box;margin:0 0 12px;padding:11px 12px 12px;
+  width:100%;box-sizing:border-box;margin:0;padding:0;
   border:1px solid var(--line);border-radius:14px;background:var(--card-2);text-align:left;
 }
+.preset-panel.open{margin:0 0 12px}
 .preset-panel[hidden]{display:none}
+.preset-panel{--pad-t:11px;--pad-b:12px}
+.pp-inner{padding-left:12px;padding-right:12px}
+
+/* ---------- 动效（v4.0.2） ---------- */
+/* 可折叠小面板统一走「高度 + 淡入」过渡：原来是 hidden 一翻就出现，
+   下面的内容被「唰」地顶开，眼睛跟不上。现在高度从 0fr 长到 1fr，
+   落点看得见；收起时反向演一遍，动画播完才真正 hidden。 */
+.collapse{
+  display:grid;grid-template-rows:0fr;
+  opacity:0;transform:translateY(-6px);transform-origin:top center;
+  transition:grid-template-rows .3s cubic-bezier(.2,.8,.25,1),
+             opacity .2s ease,
+             transform .3s cubic-bezier(.2,.8,.25,1),
+             margin-bottom .3s cubic-bezier(.2,.8,.25,1);
+}
+.collapse.open{grid-template-rows:1fr;opacity:1;transform:none}
+/* 内层负责「内边距也一起收」：只压 grid 轨道的话，内边距（23px）会留在那儿，
+   收起时平白占一截高度，展开的第一帧就跳一下。内边距用变量，各面板自己声明。 */
+.collapse>.collapse-in{
+  min-height:0;overflow:hidden;
+  padding-top:var(--pad-t,0);padding-bottom:var(--pad-b,0);
+  transition:padding-top .3s cubic-bezier(.2,.8,.25,1),
+             padding-bottom .3s cubic-bezier(.2,.8,.25,1);
+}
+.collapse:not(.open)>.collapse-in{padding-top:0;padding-bottom:0}
+/* 新加的预设：弹一下，让人看清它落到了哪儿。
+   注意不写 fill-mode —— 动画结束后把 transform 交还给 :active，按下去才有回弹。 */
+.preset.pop{animation:presetPop .34s cubic-bezier(.2,.9,.25,1.2)}
+@keyframes presetPop{
+  0%{opacity:0;transform:scale(.82) translateY(5px)}
+  60%{transform:scale(1.05)}
+  100%{opacity:1;transform:none}
+}
+/* 管理列表的行：新增滑进来；删除先收起来再真删（撤销恢复时再滑回来） */
+.pp-item.pop{animation:ppRowIn .28s cubic-bezier(.2,.9,.25,1.15)}
+@keyframes ppRowIn{0%{opacity:0;transform:translateX(-8px)}100%{opacity:1;transform:none}}
+.pp-item.gone{overflow:hidden;animation:ppRowOut .18s ease forwards}
+@keyframes ppRowOut{
+  from{opacity:1;max-height:80px}
+  to{opacity:0;max-height:0;transform:translateX(8px);padding-top:0;padding-bottom:0}
+}
+/* 系统里开了「减少动态效果」就老实点：只保留状态变化，不留花活 */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+    scroll-behavior:auto !important;
+  }
+}
 .pp-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .pp-head>b{font-size:12.5px;color:var(--text)}
 .pp-head small{font-weight:400;font-size:11px;color:var(--muted);margin-left:7px}
@@ -744,7 +800,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 
   <header>
     <div class="bar">
-      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄钟 · v4.0.1</small></h1>
+      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄钟 · v4.0.2</small></h1>
       <button class="icon-btn" id="themeBtn" title="切换深浅色" aria-label="切换深浅色主题">◐</button>
       <button class="icon-btn" id="menuBtn" title="更多" aria-label="更多功能菜单">⋯<span class="thedot" id="bkDot"></span></button>
     </div>
@@ -870,7 +926,8 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
     </div>
 
     <!-- 预设管理：添加 / 删除都在这一页里完成（原来在菜单弹窗里，现在挪进来） -->
-    <div class="preset-panel" id="presetPanel" hidden>
+    <div class="preset-panel collapse" id="presetPanel" hidden>
+     <div class="pp-inner collapse-in">
       <div class="pp-head">
         <b>管理预设<small id="presetCount"></small></b>
         <button class="link" id="presetPanelClose" type="button">收起</button>
@@ -890,6 +947,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
           <button class="btn primary" id="presetAdd" type="button">添加</button>
         </div>
       </div>
+     </div>
     </div>
 
     <div class="subjbar psubj" id="pomoSubj"></div>
@@ -912,7 +970,8 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
       <span class="ms" id="pomoMoreSum">25 分钟</span>
       <span class="car">▾</span>
     </button>
-    <div class="pomo-more" id="pomoMoreBox" hidden>
+    <div class="pomo-more collapse" id="pomoMoreBox" hidden>
+     <div class="collapse-in">
       <div class="pomo-modes" id="pomoModes">
         <button class="chip" data-min="15">15 分钟</button>
         <button class="chip on" data-min="25">25 分钟</button>
@@ -931,6 +990,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
         <input type="checkbox" id="pomoAutoLog" checked>
         <span>完成一个番茄时，自动往日志里记一条</span>
       </label>
+     </div>
     </div>
   </div>
   <div class="dlg-actions">
@@ -2739,7 +2799,9 @@ function applyCustomFocus(){
 /* ---- 番茄钟预设：渲染 / 一键开始 / 增删 ----
    增删入口就在番茄钟页内（＋ 展开管理面板），不再从菜单里开弹窗。 */
 let presetPanelOpen = false;
-function renderPresets(){
+/* animId：刚新增/刚恢复的那条预设 id —— 只给它播一次「弹入」动画，
+   顺手滚进视野（预设条能横向滚动，新条目可能落在看不见的地方）。 */
+function renderPresets(animId){
   const box = $("pomoPresets"); if(!box) return;
   box.innerHTML = "";
   if(!presets.length){
@@ -2751,7 +2813,7 @@ function renderPresets(){
     presets.forEach(p => {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "preset";
+      b.className = "preset" + (p.id === animId ? " pop" : "");
       b.title = "点一下直接开始专注";
       const n = document.createElement("span");
       n.className = "pn"; n.textContent = p.name;
@@ -2761,6 +2823,13 @@ function renderPresets(){
       b.appendChild(n); b.appendChild(m);
       b.onclick = () => applyPreset(p);
       box.appendChild(b);
+    });
+  }
+  /* 新加的那条顺手滚进视野：预设条是横向滚动的，它可能刚好落在屏幕外 */
+  if(animId){
+    const fresh = box.querySelector(".preset.pop");
+    if(fresh) requestAnimationFrame(() => {
+      try{ fresh.scrollIntoView({block:"nearest", inline:"nearest", behavior:"smooth"}); }catch(e){}
     });
   }
   /* ＋ 是「展开/收起管理面板」的开关，永远可点（满了也能进去删） */
@@ -2774,15 +2843,37 @@ function renderPresets(){
   const cnt = $("presetCount");
   if(cnt) cnt.textContent = "· " + presets.length + " / " + PRESET_KEEP;
 }
+/* v4.0.2：可折叠面板的统一过渡 —— 展开时先让它可见、把「收起态」钉成起点，
+   再加 .open 让过渡真的播出来；收起时先摘掉 .open 演一遍，播完（约 300ms）才真正 hidden。
+   定时器按元素 id 存：连续点 ＋ 不会出现「收起动画把刚展开的面板藏掉」。 */
+const collapseTimers = {};
+function setCollapse(el, open, delay){
+  if(!el) return;
+  const key = el.id || "anon";
+  clearTimeout(collapseTimers[key]);
+  if(open){
+    el.hidden = false;
+    el.classList.remove("open");
+    void el.offsetHeight;   // 强制一次回流：把「收起态」钉成过渡起点，同一 tick 加 .open 就能播
+    el.classList.add("open");
+  } else {
+    el.classList.remove("open");
+    collapseTimers[key] = setTimeout(() => {
+      if(!el.classList.contains("open")) el.hidden = true;
+    }, delay || 320);
+  }
+}
 /* 展开 / 收起页内管理面板；不传参数就是切一下 */
 function openPresetPanel(on){
   presetPanelOpen = (on === undefined) ? !presetPanelOpen : !!on;
   const p = $("presetPanel");
-  if(p) p.hidden = !presetPanelOpen;
-  if(presetPanelOpen){
-    renderPresetList();
-    /* 展开后把它带进视野，免得看着「点了没反应」 */
-    if(p) requestAnimationFrame(() => { try{ p.scrollIntoView({block:"nearest"}); }catch(e){} });
+  if(p){
+    setCollapse(p, presetPanelOpen);
+    if(presetPanelOpen){
+      renderPresetList();
+      /* 等它长起来一点再带进视野，免得看着「点了没反应」 */
+      setTimeout(() => { try{ p.scrollIntoView({block:"nearest", behavior:"smooth"}); }catch(e){} }, 150);
+    }
   }
   renderPresets();
 }
@@ -2808,9 +2899,11 @@ function addPreset(name, min, subj){
   if(name.length > 24){ toast("名字太长了，24 字以内"); return false; }
   if(presets.length >= PRESET_KEEP){ toast("预设最多 " + PRESET_KEEP + " 个，先删掉几个"); return false; }
   if(presets.some(x => x.name === name)){ toast("已经有同名预设了"); return false; }
-  presets.push({ id: uid(), name: name, min: presetMin(min), subj: (subj || "").slice(0, 24) });
+  const item = { id: uid(), name: name, min: presetMin(min), subj: (subj || "").slice(0, 24) };
+  presets.push(item);
   saveRaw(KEY_PRESETS, presets);
-  renderPresets();
+  renderPresets(item.id);                  // 只让新加的这一条弹一下
+  renderPresetList(item.id);               // 管理列表里的对应行也滑进来（面板没开时重建一次无害）
   return true;
 }
 function delPreset(id){
@@ -2826,11 +2919,12 @@ function delPreset(id){
   toastUndo("已删除预设「" + p.name + "」", () => {
     presets.splice(Math.min(at, presets.length), 0, p);
     saveRaw(KEY_PRESETS, presets);
-    renderPresets(); renderPresetList();
+    renderPresets(p.id); renderPresetList(p.id);   // 恢复时再弹回来，看得见是哪条回来了
     toast("已恢复预设「" + p.name + "」");
   });
 }
-function renderPresetList(){
+/* animId：刚新增/刚恢复的那一行，滑进来一次，让眼睛有落点 */
+function renderPresetList(animId){
   const sel = $("presetSubj");
   if(sel){
     const keep = sel.value;
@@ -2845,7 +2939,7 @@ function renderPresetList(){
     return;
   }
   list.innerHTML = presets.map((p, i) =>
-    '<div class="stat-row">' +
+    '<div class="stat-row pp-item' + (p.id === animId ? " pop" : "") + '">' +
       '<span class="pp-name">' +
         '<span class="dot" style="background:' + subjColor(p.subj) +
           ';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;flex:0 0 auto"></span>' +
@@ -2856,7 +2950,17 @@ function renderPresetList(){
   list.querySelectorAll("button[data-pi]").forEach(b => {
     b.onclick = () => {
       const p = presets[Number(b.dataset.pi)];
-      if(p) delPreset(p.id);
+      if(!p) return;
+      /* 先让这一行收起来，再真删 —— 直接重绘的话下面的行会「跳」上来，
+         删的是哪一条也就看不出来了 */
+      const row = b.closest(".pp-item");
+      if(row && !row.classList.contains("gone")){
+        row.classList.add("gone");
+        b.disabled = true;
+        setTimeout(() => delPreset(p.id), 180);
+      } else if(!row){
+        delPreset(p.id);
+      }
     };
   });
 }
@@ -3673,7 +3777,8 @@ let pomoMoreOpen = false;
 function openPomoMore(on){
   pomoMoreOpen = !!on;
   const box = $("pomoMoreBox"), btn = $("pomoMore");
-  if(box) box.hidden = !pomoMoreOpen;
+  /* 和预设管理面板走同一套展开/收起过渡，不然「更多设置」也是「唰」地顶开下面 */
+  if(box) setCollapse(box, pomoMoreOpen, 340);
   if(btn){
     btn.classList.toggle("on", pomoMoreOpen);
     btn.setAttribute("aria-expanded", pomoMoreOpen ? "true" : "false");
@@ -3743,7 +3848,8 @@ function initExtra(){
     const ok = addPreset($("presetName").value, $("presetMin").value, $("presetSubj").value);
     if(ok){
       $("presetName").value = "";
-      renderPresetList();
+      /* 列表不在这里重绘 —— addPreset 里已经带着新 id 画过一次，
+         这里再来一次会把那一行的入场动画冲掉 */
       toast("已添加预设 · 点上面那一条就能开始");
     }
   };

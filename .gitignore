@@ -1,5 +1,7 @@
 # 无头测试用的临时探针页（不入库）
 _probe*.html
 _shot*.html
+_v40*_*.html
+_v402*_*.html
 _v40_*.html
 _verify_*.html
