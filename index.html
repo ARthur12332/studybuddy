@@ -465,6 +465,38 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 }
 .dlg-body input+label{margin-top:12px}
 
+/* ---------- 番茄钟预设 ---------- */
+.presetwrap{display:flex;align-items:center;gap:8px;width:100%;padding:0 0 12px}
+.presets{
+  flex:1;min-width:0;display:flex;gap:7px;overflow-x:auto;
+  scrollbar-width:none;padding:2px 0;
+}
+.presets::-webkit-scrollbar{display:none}
+.preset{
+  flex:0 0 auto;display:flex;flex-direction:column;gap:2px;align-items:flex-start;
+  border:1px solid var(--line);background:var(--card-2);color:var(--text);
+  border-radius:12px;padding:6px 11px;cursor:pointer;font:inherit;text-align:left;
+  transition:transform .12s ease;
+}
+.preset:active{transform:scale(.96)}
+.preset .pn{
+  font-size:12.5px;font-weight:600;max-width:120px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.preset .pm{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.preset-mgr{
+  flex:0 0 auto;width:42px;height:42px;border-radius:12px;
+  border:1px dashed var(--line);background:none;color:var(--muted);
+  font-size:18px;line-height:1;cursor:pointer;
+}
+.preset-mgr:active{transform:scale(.96)}
+.preset-mgr:disabled{opacity:.4}
+.preset-empty{
+  flex:0 0 auto;font-size:12px;color:var(--muted);padding:12px 2px;
+}
+.preset-list{max-height:40vh;overflow-y:auto}
+.preset-list .stat-row .meta{color:var(--muted);font-size:11.5px;margin-left:6px}
+
 /* ---------- 间隔复习 ---------- */
 .revcard{
   background:var(--card);border:1px solid var(--line);border-radius:12px;
@@ -548,7 +580,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 
   <header>
     <div class="bar">
-      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 学习趋势 · v3.1</small></h1>
+      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄预设 · v3.2</small></h1>
       <button class="icon-btn" id="themeBtn" title="切换深浅色" aria-label="切换深浅色主题">◐</button>
       <button class="icon-btn" id="menuBtn" title="更多" aria-label="更多功能菜单">⋯<span class="thedot" id="bkDot"></span></button>
     </div>
@@ -621,6 +653,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   <button class="menu-row" data-act="pasteJson"><span class="em">📥</span><span>从剪贴板导入<small>把之前复制的备份粘回来</small></span></button>
   <button class="menu-row" data-act="sched"><span class="em">📅</span><span>完成的学习日程<small>每个番茄完成的记录，可按天复盘</small></span></button>
   <button class="menu-row" data-act="goals"><span class="em">🎯</span><span>每日目标设置<small>每天都要做的事，天天重置</small></span></button>
+  <button class="menu-row" data-act="presets"><span class="em">⚡</span><span>番茄钟预设<small>起好名字和时长，点一下就开专注</small></span></button>
   <button class="menu-row" data-act="subjects"><span class="em">🏷</span><span>科目设置<small>数二 / 英二 / 政治 / 半导体物理</small></span></button>
   <button class="menu-row" data-act="clear"><span class="em">🗑</span><span>清空全部<small>谨慎，建议先备份</small></span></button>
   <button class="menu-row" data-act="close"><span class="em">✕</span><span>关闭</span></button>
@@ -647,6 +680,12 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
         <div class="tk" id="pomoTaskShow"></div>
       </div>
       <span class="zoom-tip" id="zoomTip">点击放大 ⤢</span>
+    </div>
+
+    <div class="presetwrap">
+      <div class="presets" id="pomoPresets"></div>
+      <button class="preset-mgr" id="presetSave" type="button"
+              title="把当前设置存为预设" aria-label="把当前设置存为预设">＋</button>
     </div>
 
     <div class="subjbar psubj" id="pomoSubj"></div>
@@ -789,6 +828,26 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   </div>
 </dialog>
 
+<dialog id="presetDlg">
+  <div class="dlg-body">
+    <h3>番茄钟预设</h3>
+    <label>番茄钟里点一下就能直接开始专注（最多 12 个）</label>
+    <div class="preset-list" id="presetList"></div>
+    <label>名称</label>
+    <input type="text" id="presetName" placeholder="例如：极限 30 题" maxlength="24" autocomplete="off">
+    <label>时长（分钟，1~180）</label>
+    <input type="number" id="presetMin" min="1" max="180" step="5" inputmode="numeric" value="45">
+    <label>科目（可选）</label>
+    <select id="presetSubj"></select>
+    <div class="dlg-actions" style="padding:12px 0 0">
+      <button class="btn primary" id="presetAdd">添加预设</button>
+    </div>
+  </div>
+  <div class="dlg-actions">
+    <button class="btn primary" id="presetClose">完成</button>
+  </div>
+</dialog>
+
 <dialog id="delSubjDlg">
   <div class="dlg-body">
     <h3>删除科目</h3>
@@ -902,6 +961,7 @@ const KEY_LASTBK = "studybuddy.lastbackup";
 const KEY_SESS = "studybuddy.sessions.v1";
 const KEY_TASKS = "studybuddy.tasks.v1";
 const KEY_SESS_ARC = "studybuddy.sessions.arc.v1";
+const KEY_PRESETS = "studybuddy.presets.v1";
 
 const BASE_TITLE = "StudyBuddy · 日志笔记";
 const LIST_STEP = 50;                 // 列表分页：每批渲染条数
@@ -927,6 +987,7 @@ let goalLog = {};                                        // { "2026-09-22": { go
 let sessions = [];                                       // 完成的专注记录
 let archivedSessions = [];                               // 较早的日程（归档，统计仍计入，备份含全部）
 let recentTasks = [];                                    // 最近用过的任务名
+let presets = [];                                        // 番茄钟预设：{id, name, min, subj}
 let syncedRaw = null;                                    // 上次写入/同步过的 notes 快照，用于写前合并判重
 
 const DEFAULT_GOALS = [
@@ -937,6 +998,22 @@ const DEFAULT_GOALS = [
   { text: "半导体物理 1 章", subj: "半导体物理" }
 ];
 const SUBJ_HUES = [222, 268, 340, 152, 200, 30, 300, 12];
+
+/* ---------------- 番茄钟预设 ----------------
+   一次配好「名字 + 时长 + 科目」，以后在番茄钟弹层里点一下就**直接开始专注**，
+   不用每次重设。存在 studybuddy.presets.v1，和科目/目标一样是纯本地数组。 */
+const PRESET_KEEP = 12;
+const DEFAULT_PRESETS = [
+  { name: "数学二 一章",   min: 45, subj: "数学二" },
+  { name: "英语阅读 1 篇", min: 25, subj: "英语二" },
+  { name: "政治 1 讲",     min: 25, subj: "政治" },
+  { name: "半导体物理 1 章", min: 45, subj: "半导体物理" }
+];
+/* 时长统一夹到 1~180：和界面上的自定义输入保持一致，坏数据也不会算出荒唐的倒计时 */
+function presetMin(v){
+  const n = Math.round(Number(v));
+  return Math.max(1, Math.min(180, isFinite(n) && n > 0 ? n : 25));
+}
 
 /* ---------------- 间隔重复 / 复习提醒 ----------------
    给笔记加一个 reviewAt（下次复习日，YYYY-MM-DD）。有它才进复习队列，
@@ -1235,6 +1312,26 @@ function loadExtra(){
     const rt = JSON.parse(localStorage.getItem(KEY_TASKS) || "null");
     recentTasks = Array.isArray(rt) ? rt.filter(x => typeof x === "string") : [];
   }catch(e){ recentTasks = []; }
+  /* 番茄钟预设：id 同样只收安全形态（会拼进 data 属性），
+     名字/时长/科目都过一遍规整 —— 导入的备份可能来自旧版本或被改坏。 */
+  const mkPresets = () => DEFAULT_PRESETS.map(x => ({ id: uid(), name: x.name, min: presetMin(x.min), subj: x.subj }));
+  try{
+    const pr = JSON.parse(localStorage.getItem(KEY_PRESETS) || "null");
+    if(Array.isArray(pr)){
+      /* 空数组也要原样保留：用户把预设删光后，这里若又补默认值，删掉的会「复活」 */
+      presets = pr.filter(x => x && typeof x.name === "string" && x.name.trim())
+                  .map(x => ({
+                    id: (typeof x.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(x.id)) ? x.id : uid(),
+                    name: x.name.trim().slice(0, 24),
+                    min: presetMin(x.min),
+                    subj: typeof x.subj === "string" ? x.subj.slice(0, 24) : ""
+                  }))
+                  .slice(0, PRESET_KEEP);
+    }else{
+      presets = mkPresets();
+      saveRaw(KEY_PRESETS, presets);
+    }
+  }catch(e){ presets = mkPresets(); saveRaw(KEY_PRESETS, presets); }
   try{ pickSubj = localStorage.getItem(KEY_LASTSUBJ) || ""; }catch(e){}
 }
 function saveSessions(){ saveRaw(KEY_SESS, sessions); }
@@ -1694,6 +1791,8 @@ menuDlg.addEventListener("click", (e) => {
     openSched();
   } else if(act === "goals"){
     openGoals();
+  } else if(act === "presets"){
+    openPresets();
   } else if(act === "subjects"){
     renderSubjDlg(); $("subjDlg").showModal();
   } else if(act === "import"){
@@ -2232,6 +2331,104 @@ function applyCustomFocus(){
   savePomo(); paintPomo();
 }
 
+/* ---- 番茄钟预设：渲染 / 一键开始 / 增删 ---- */
+function renderPresets(){
+  const box = $("pomoPresets"); if(!box) return;
+  box.innerHTML = "";
+  if(!presets.length){
+    const d = document.createElement("div");
+    d.className = "preset-empty";
+    d.textContent = "还没有预设 —— 先选科目/时长，再点右边 ＋ 存一个";
+    box.appendChild(d);
+    return;
+  }
+  presets.forEach(p => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "preset";
+    b.title = "点一下直接开始专注";
+    const n = document.createElement("span");
+    n.className = "pn"; n.textContent = p.name;
+    const m = document.createElement("span");
+    m.className = "pm";
+    m.textContent = p.min + " 分钟" + (p.subj ? " · " + p.subj : "");
+    b.appendChild(n); b.appendChild(m);
+    b.onclick = () => applyPreset(p);
+    box.appendChild(b);
+  });
+  const mgr = $("presetSave");
+  if(mgr) mgr.disabled = presets.length >= PRESET_KEEP;
+}
+/* 一键开始：把预设写进当前番茄钟状态，然后起跑 + 直接进沉浸倒计时 */
+function applyPreset(p){
+  if(!p) return;
+  /* 正在计时就别悄悄切走：当前这轮不计入统计，得让他自己确认 */
+  if(pomo.running && !confirm("正在专注中，切换到「" + p.name + "」？当前这轮不计入统计。")) return;
+  pomo.focusMin = presetMin(p.min);
+  pomo.task = p.name;
+  pomo.subj = p.subj || "";
+  setPhase("focus");                       // 复用：按新时长重置倒计时、停表、重绘
+  rememberTask(p.name);
+  saveRaw(KEY_LASTSUBJ, pomo.subj);
+  renderPomoSubj(); renderRecentTasks();
+  pomoStart();                             // 借这次点击解锁音频与通知权限
+  openPomoFull();                          // 里面会顺手收起小弹窗，并进入沉浸态
+  toast("开始专注 · " + p.name + " · " + pomo.focusMin + " 分钟");
+}
+function addPreset(name, min, subj){
+  name = (name || "").trim();
+  if(!name){ toast("先给预设起个名字"); return false; }
+  if(name.length > 24){ toast("名字太长了，24 字以内"); return false; }
+  if(presets.length >= PRESET_KEEP){ toast("预设最多 " + PRESET_KEEP + " 个，先去菜单里删几个"); return false; }
+  if(presets.some(x => x.name === name)){ toast("已经有同名预设了"); return false; }
+  presets.push({ id: uid(), name: name, min: presetMin(min), subj: (subj || "").slice(0, 24) });
+  saveRaw(KEY_PRESETS, presets);
+  renderPresets();
+  return true;
+}
+function delPreset(id){
+  const i = presets.findIndex(x => x.id === id);
+  if(i < 0) return;
+  const nm = presets[i].name;
+  presets.splice(i, 1);
+  saveRaw(KEY_PRESETS, presets);
+  renderPresets(); renderPresetList();
+  toast("已删除预设「" + nm + "」");
+}
+function renderPresetList(){
+  const sel = $("presetSubj");
+  if(sel){
+    const keep = sel.value;
+    let html = '<option value="">（不指定）</option>';
+    subjects.forEach(s => { html += '<option value="' + esc(s) + '">' + esc(s) + "</option>"; });
+    sel.innerHTML = html;
+    if(keep) sel.value = keep;
+  }
+  const list = $("presetList"); if(!list) return;
+  if(!presets.length){
+    list.innerHTML = '<div class="stat-row"><span>还没有预设，下面加一个吧</span></div>';
+    return;
+  }
+  list.innerHTML = presets.map((p, i) =>
+    '<div class="stat-row"><span>' +
+      '<span class="dot" style="background:' + subjColor(p.subj) +
+        ';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px"></span>' +
+      esc(p.name) +
+      '<span class="meta">' + p.min + " 分钟" + (p.subj ? " · " + esc(p.subj) : "") + "</span>" +
+    "</span>" +
+    '<button class="link" data-pi="' + i + '">删除</button></div>').join("");
+  list.querySelectorAll("button[data-pi]").forEach(b => {
+    b.onclick = () => {
+      const p = presets[Number(b.dataset.pi)];
+      if(p) delPreset(p.id);
+    };
+  });
+}
+function openPresets(){
+  renderPresetList();
+  $("presetDlg").showModal();
+}
+
 /* ---- 专注时长统计 ---- */
 function fmtDur(m){
   m = Math.round(m || 0);
@@ -2456,6 +2653,7 @@ function initPomo(){
   });
   /* 结算已在 loadPomo() 里做了（它会直接调 pomoFinish），这里只负责首屏渲染 */
   paintPomo();
+  renderPresets();
   setInterval(pomoTick, 1000);
 }
 
@@ -2730,9 +2928,9 @@ function renderSubjStats(){
 
 /* ---------------- 备份 ---------------- */
 function backupPayload(){
-  return { app:"StudyBuddy", version:4, exportedAt:new Date().toISOString(),
+  return { app:"StudyBuddy", version:5, exportedAt:new Date().toISOString(),
            notes, pomoLog, exam, subjects, goals, goalLog,
-           sessions: sessions.concat(archivedSessions), recentTasks };
+           sessions: sessions.concat(archivedSessions), recentTasks, presets };
 }
 function markBackup(){ saveRaw(KEY_LASTBK, dayKey(new Date())); renderBackupTip(); }
 function daysSinceBackup(){
@@ -2872,6 +3070,19 @@ function importData(text){
         recentTasks = recentTasks.slice(0, 6);
         saveRaw(KEY_TASKS, recentTasks);
       }
+      if(Array.isArray(data.presets)){
+        /* 预设按「名字」去重（id 是本地生成的，跨设备必然不同） */
+        const haveP = new Set(presets.map(x => x.name));
+        data.presets.forEach(p => {
+          if(!p || typeof p.name !== "string") return;
+          const nm = p.name.trim().slice(0, 24);
+          if(!nm || haveP.has(nm) || presets.length >= PRESET_KEEP) return;
+          haveP.add(nm);
+          presets.push({ id: uid(), name: nm, min: presetMin(p.min),
+                         subj: typeof p.subj === "string" ? p.subj.slice(0, 24) : "" });
+        });
+        saveRaw(KEY_PRESETS, presets);
+      }
     }
     persist();
     /* 两个受限列表都在导入里被限制了长度，但外部数据仍可能是「已有 59 条 + 导入 1 条」
@@ -2884,7 +3095,7 @@ function importData(text){
       goals = goals.filter(g => g.text.length <= MAX_GOALTEXT);
       saveRaw(KEY_SUBJ, subjects); saveRaw(KEY_GOALS, goals);
     }
-    renderSubjBar(); renderPomoSubj(); render();
+    renderSubjBar(); renderPomoSubj(); renderPresets(); render();
     toast("导入完成：新增 " + added + " 条" + (dup ? "，跳过 " + dup + " 条重复" : "") +
           (addedS ? "；日程 +" + addedS : ""));
   }catch(e){
@@ -2997,6 +3208,24 @@ function openSched(){
 function initExtra(){
   renderSubjBar(); renderPomoSubj(); renderExam(); renderBackupTip();
   initReview();                                            // 复习卡与「加入复习」开关的事件委托
+  renderPresets();
+  /* 番茄钟预设：＋ 把当前设置存下来；管理弹窗里增删 */
+  $("presetSave").onclick = () => {
+    const name = (pomo.task || "").trim() || (pomo.subj ? pomo.subj + " 专注" : "");
+    if(addPreset(name, pomo.focusMin, pomo.subj)) toast("已存为预设 · 下次点一下就开");
+  };
+  $("presetAdd").onclick = () => {
+    const ok = addPreset($("presetName").value, $("presetMin").value, $("presetSubj").value);
+    if(ok){
+      $("presetName").value = "";
+      renderPresetList();
+      toast("已添加预设");
+    }
+  };
+  $("presetName").addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){ e.preventDefault(); $("presetAdd").click(); }
+  });
+  $("presetClose").onclick = () => $("presetDlg").close();
   $("examStrip").onclick = openExam;
   $("examSave").onclick = saveExam;
   $("examCancel").onclick = () => $("examDlg").close();
@@ -3035,7 +3264,7 @@ function initExtra(){
 /* 其他标签页写入的数据实时同步过来，配合 persist() 的写前合并，把多标签覆盖丢数据的窗口压到毫秒级。
    注意：KEY_POMO / KEY_POMOLOG 不在列表内 —— 两个标签页各开一个番茄钟时，
    互相覆盖 endAt/running 会让计时错乱，番茄钟状态只属于「当前这个标签页」。 */
-const SYNC_KEYS = [KEY_NOTES, KEY_SESS, KEY_SESS_ARC, KEY_TASKS, KEY_SUBJ, KEY_GOALS, KEY_GOALLOG, KEY_EXAM];
+const SYNC_KEYS = [KEY_NOTES, KEY_SESS, KEY_SESS_ARC, KEY_TASKS, KEY_SUBJ, KEY_GOALS, KEY_GOALLOG, KEY_EXAM, KEY_PRESETS];
 let reloadTimer = null;
 let pendingReload = false;
 window.addEventListener("storage", (e) => {
@@ -3051,7 +3280,7 @@ function doReload(){
   /* KEY_NOTES/日程等数据重新读入；番茄钟状态不参与同步，保持本页自己的进度 */
   load(); loadExtra();
   if(pomo.running && pomo.endAt && pomo.endAt - Date.now() <= 0) pomoFinish();   // 期间已经跑完就结算
-  renderSubjBar(); renderPomoSubj(); renderExam();
+  renderSubjBar(); renderPomoSubj(); renderExam(); renderPresets();
   /* 跨标签页同步只换数据，不动用户的浏览位置：
      滚动容器是 main#list（它自己 overflow-y:auto，窗口根本不滚），
      所以要保的是 list.scrollTop，不是 window.scrollY。
