@@ -6,3 +6,6 @@ desktop.ini
 
 # 自检时产生的临时文件
 _check.js
+# 无头测试用的临时探针页（不入库）
+_probe*.html
+_shot*.html
