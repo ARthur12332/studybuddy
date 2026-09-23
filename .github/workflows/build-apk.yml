@@ -78,6 +78,11 @@ jobs:
           mkdir -p "$HOME/.android"
           printf '%s' "${{ secrets.DEBUG_KEYSTORE_B64 }}" | base64 -d > "$HOME/.android/debug.keystore"
           chmod 600 "$HOME/.android/debug.keystore"
+          # 光把文件放对位置并不保险：AGP 去哪个目录找密钥，受 ANDROID_SDK_HOME /
+          # ANDROID_PREFS_ROOT 影响，runner 上这两个变量被设成 SDK 目录，于是它
+          # 根本不用我们放的那份、又临时生成了一把新的（试过一次，签名照样变）。
+          # 所以显式把路径递给 Gradle（app/build.gradle 里读 DEBUG_KEYSTORE）。
+          echo "DEBUG_KEYSTORE=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
           ls -l "$HOME/.android/debug.keystore"
 
       - name: 构建 APK

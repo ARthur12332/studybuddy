@@ -64,7 +64,42 @@ android {
 
     /* 只做 debug 出包：用默认签名，装到手机上不需要配任何密钥。
        哪天要上架再补 release 签名。 */
+    /* ── 签名必须固定 ──────────────────────────────────────────────────────
+       debug 包默认用 ~/.android/debug.keystore，但 AGP 到哪儿找它，取决于
+       ANDROID_SDK_HOME / ANDROID_PREFS_ROOT 这两个环境变量 —— 在 CI 上它们
+       常被设成 SDK 目录，于是「把密钥放进 $HOME/.android」根本不生效，
+       AGP 照样临时生成一份新的。
+       结果是每次云端出的包签名都不一样，手机上装过旧版就再也覆盖不上
+       （系统以签名冲突直接拒装，用户看到的就是「装不上 / 打不开」）。
+
+       所以这里显式指出密钥位置：CI 上由 DEBUG_KEYSTORE 环境变量给，
+       本机走默认路径 —— 两边是同一把密钥，出来的签名自然一致。
+       ──────────────────────────────────────────────────────────────────── */
+    signingConfigs {
+        fixed {
+            def ksPath = System.getenv('DEBUG_KEYSTORE')
+                    ?: new File(System.getProperty('user.home'), '.android/debug.keystore').absolutePath
+            def ks = file(ksPath)
+            if (!ks.exists()) {
+                throw new GradleException("""找不到签名密钥：${ksPath}
+
+                    这把密钥决定了 APK 的签名，必须始终如一：换了密钥，手机上已经装着的
+                    版本就再也覆盖不上（系统会以签名冲突直接拒装）。
+                    本机跑 ./build-local.sh 会自动从 D:/DevTools/ 的备份恢复；
+                    其他机器请把备份放到 ~/.android/debug.keystore，或用 DEBUG_KEYSTORE 指定路径。
+                    """.stripIndent())
+            }
+            storeFile ks
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.fixed
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
