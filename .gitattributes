@@ -1,0 +1,21 @@
+# 换行规范
+#
+# 为什么单独列 workflow：GitHub Actions 的 YAML 里有多行 shell 脚本，
+# 而 Windows 上 core.autocrlf=true 会把它们转成 CRLF。CRLF 进了 ubuntu runner，
+# bash 会把每行末尾的 \r 当成命令的一部分，报一堆莫名其妙的错。
+# 这几个文件必须锁死 LF。
+.github/workflows/*.yml   text eol=lf
+.github/workflows/*.yaml  text eol=lf
+*.sh                      text eol=lf
+gradlew                   text eol=lf
+
+# Gradle 配置也锁 LF，省得属性值末尾带上 \r
+android/**/*.gradle       text eol=lf
+android/**/*.properties   text eol=lf
+
+# 二进制别乱动
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.jar  binary
+*.apk  binary
