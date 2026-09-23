@@ -231,7 +231,13 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 @keyframes pfIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
 
 /* 沉浸模式：开始计时后除数字外全部淡出，点屏幕任意处再唤出 */
-.pf-inner,.pf-tools,.pf-hint{transition:opacity .32s ease, transform .32s ease}
+.pf-inner,.pf-tools,.pf-hint{transition:opacity .32s ease, transform .32s ease, max-height .32s ease, margin .32s ease}
+/* 淡出只是「看不见」，元素仍然占着高度 → 圆环会被顶得偏上。
+   这里连高度一起收掉（max-height + overflow:hidden），圆环就平滑滑回正中心。 */
+.pf-tools{max-height:160px;overflow:hidden}
+.pf-hint{max-height:90px;overflow:hidden}
+.pomo-full.pf-zen .pf-tools{max-height:0}
+.pomo-full.pf-zen .pf-hint{max-height:0;margin-top:0}
 .pomo-full.pf-zen .pf-side{opacity:0;transform:translateY(8px);pointer-events:none}
 .pomo-full.pf-zen .pf-tools{opacity:0;transform:translateY(14px);pointer-events:none}
 .pomo-full.pf-zen .pf-hint{opacity:0;pointer-events:none}
@@ -280,13 +286,20 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 .pf-tool.pf-exit{background:linear-gradient(135deg,var(--brand),var(--brand-2));border-color:transparent;font-weight:700;color:#fff}
 .pf-hint{flex:0 0 auto;margin:12px 0 0;font-size:11.5px;color:var(--pf-muted);text-align:center;opacity:.85}
 
-/* 横屏：圆环在左、信息与按钮在右，充分利用宽屏 */
+/* 横屏：圆环**永远居中**、并尽量放大；右侧信息改成绝对定位、不再参与排版。
+   ⚠️ 2026-09-23 修：原来 .pf-side 是 flex:1 1 auto，沉浸态里那行字虽然 opacity:0
+   （看不见），却仍然占着最多 40vw 的宽度，把圆环一直顶向左边 —— 手机上看着就是「不在中间」。 */
 @media (orientation:landscape) and (max-height:560px){
   .pomo-full{padding:calc(env(safe-area-inset-top) + 8px) 24px calc(env(safe-area-inset-bottom) + 8px)}
-  .pf-inner{flex-direction:row;gap:min(6vw, 64px)}
-  .pf-ring{width:min(62vh, 46vw);height:min(62vh, 46vw);flex:0 0 auto}
-  .pf-num{font-size:min(17vh, 13vw)}
-  .pf-side{text-align:left;max-width:min(40vw, 420px);flex:1 1 auto}
+  .pf-inner{flex-direction:row;gap:0}
+  /* margin:0 auto 吸收两侧余量 → 圆环真正居中，不受右侧信息显隐影响 */
+  .pf-ring{width:min(72vh, 44vw);height:min(72vh, 44vw);flex:0 0 auto;margin:0 auto}
+  .pf-num{font-size:min(23vh, 14vw)}
+  .pf-side{
+    position:absolute;right:24px;top:0;bottom:0;
+    display:flex;flex-direction:column;justify-content:center;
+    text-align:left;max-width:min(28vw, 320px);flex:0 0 auto;
+  }
   .pf-ph{margin-top:6px;font-size:min(3vh, 14px)}
   .pf-task{font-size:min(3.6vh, 17px)}
   .pf-tools{max-width:min(40vw, 420px);gap:7px;padding-top:0}
