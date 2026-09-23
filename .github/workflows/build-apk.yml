@@ -68,9 +68,29 @@ jobs:
           echo "ANDROID_HOME=${ANDROID_HOME:-未设置}"
           ls "${ANDROID_HOME:-/usr/local/lib/android/sdk}/platforms" || true
 
+      # runner 每次都是全新环境，AGP 找不着 debug 密钥就临时生成一份 ——
+      # 于是每次云端出的包签名都不一样。手机上已经装了某个版本时，签名不同的包
+      # 会被系统直接拒装（表现就是「装不上 / 打不开」）。
+      # 这里把本机那把固定密钥喂回去，云端和本机出的包就是同一把签名，能直接覆盖安装。
+      - name: 恢复固定签名密钥
+        run: |
+          set -e
+          mkdir -p "$HOME/.android"
+          printf '%s' "${{ secrets.DEBUG_KEYSTORE_B64 }}" | base64 -d > "$HOME/.android/debug.keystore"
+          chmod 600 "$HOME/.android/debug.keystore"
+          ls -l "$HOME/.android/debug.keystore"
+
       - name: 构建 APK
         working-directory: android
         run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: 校验签名与环境
+        working-directory: android
+        run: |
+          set -e
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          BT=$(ls -d "${ANDROID_HOME}"/build-tools/* | tail -1)
+          "$BT/apksigner" verify --print-certs "$APK" | grep -E "Signer #1 certificate (DN|SHA-256)"
 
       - name: 打印产物信息
         working-directory: android

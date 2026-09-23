@@ -24,6 +24,7 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.webkit.WebViewAssetLoader;
 
 import java.io.OutputStream;
@@ -158,9 +159,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        /* 先用网页的默认配色垫上：否则进入应用那一瞬间，状态栏还是系统给的深色，
-           浅色界面上会先横一条黑带子再跳成品牌色。 */
-        applySystemBars(FALLBACK_TOP, FALLBACK_BOTTOM);
+        /* 这里刻意先不碰系统栏：values/themes.xml 里的 android:statusBarColor /
+           navigationBarColor 已经把垫底色调好了。Activity 刚创建时 decorView 还没挂上窗口，
+           个别定制 ROM 在这个时机调 getInsetsController() 会直接抛异常 ——
+           抛在 onCreate 里就是「点开图标闪一下退回桌面」。取色统一放到页面加载完之后。 */
 
         loader = new WebViewAssetLoader.Builder()
                 .setDomain(ASSET_HOST)
@@ -301,35 +303,55 @@ public class MainActivity extends Activity {
      * 否则用白色图标 —— 不然浅色导航栏上顶着一排白图标，等于没画。
      */
     private void applySystemBars(int statusColor, int navColor) {
-        Window w = getWindow();
-        w.setStatusBarColor(statusColor);
-        w.setNavigationBarColor(navColor);
+        /* 整个方法都只是「锦上添花」：颜色没换成功顶多难看一点，绝不能让应用起不来。
+           各家 ROM 对系统栏的实现差别很大，所以这里连 Throwable 一起接住
+           （老系统上真要发生类加载失败，抛的也是 Throwable 而不是 Exception）。 */
+        try {
+            Window w = getWindow();
+            w.setStatusBarColor(statusColor);
+            w.setNavigationBarColor(navColor);
 
-        boolean darkIconsOnStatus = isLightColor(statusColor);   // 底色浅 → 要深色图标
-        boolean darkIconsOnNav = isLightColor(navColor);
+            boolean darkIconsOnStatus = isLightColor(statusColor);   // 底色浅 → 要深色图标
+            boolean darkIconsOnNav = isLightColor(navColor);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                BarsApi30.apply(w, darkIconsOnStatus, darkIconsOnNav);
+            } else {
+                View decor = w.getDecorView();
+                int flags = decor.getSystemUiVisibility();
+                flags = darkIconsOnStatus
+                        ? (flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)
+                        : (flags & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    flags = darkIconsOnNav
+                            ? (flags | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+                            : (flags & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+                }
+                decor.setSystemUiVisibility(flags);
+            }
+        } catch (Throwable ignored) {
+            /* 换不了就保持主题里那层垫底色，功能不受影响 */
+        }
+    }
+
+    /**
+     * 只为 Android 11+ 服务的一段代码，单独关在一个类里。
+     *
+     * <p>这么做是为了让 ART 只在真正需要（SDK ≥ 30）时才去加载这个类：
+     * 老系统上它连被碰都不会碰，不会为了一点状态栏图标颜色去冒
+     * NoClassDefFoundError 的风险。
+     */
+    @RequiresApi(Build.VERSION_CODES.R)
+    private static final class BarsApi30 {
+        static void apply(Window w, boolean darkIconsOnStatus, boolean darkIconsOnNav) {
             WindowInsetsController c = w.getInsetsController();
-            if (c != null) {
-                int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                int appearance = 0;
-                if (darkIconsOnStatus) appearance |= WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
-                if (darkIconsOnNav) appearance |= WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                c.setSystemBarsAppearance(appearance, mask);
-            }
-        } else {
-            View decor = w.getDecorView();
-            int flags = decor.getSystemUiVisibility();
-            flags = darkIconsOnStatus
-                    ? (flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)
-                    : (flags & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                flags = darkIconsOnNav
-                        ? (flags | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
-                        : (flags & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-            }
-            decor.setSystemUiVisibility(flags);
+            if (c == null) return;
+            final int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                    | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+            int appearance = 0;
+            if (darkIconsOnStatus) appearance |= WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
+            if (darkIconsOnNav) appearance |= WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+            c.setSystemBarsAppearance(appearance, mask);
         }
     }
 
