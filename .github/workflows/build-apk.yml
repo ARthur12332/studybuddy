@@ -93,9 +93,9 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      # 手动触发或发布 Release 时，额外挂一条固定链接，方便手机直接点开装
+      # 每次构建都刷新这条固定链接：手机上收藏一个地址，永远下载到最新包。
+      # （tag 固定叫 apk-latest，release 会被反复更新 —— 这是有意的）
       - name: 挂到 Release（手机上下载更方便）
-        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest
