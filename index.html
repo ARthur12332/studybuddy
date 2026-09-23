@@ -250,7 +250,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 @keyframes pfIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
 
 /* 沉浸模式：开始计时后除数字外全部淡出，点屏幕任意处再唤出 */
-.pf-inner,.pf-tools,.pf-hint{transition:opacity .32s ease, transform .32s ease, max-height .32s ease, margin .32s ease}
+.pf-inner,.pf-side,.pf-tools,.pf-hint{transition:opacity .32s ease, transform .32s ease, max-height .32s ease, margin .32s ease, gap .32s ease}
 /* 淡出只是「看不见」，元素仍然占着高度 → 圆环会被顶得偏上。
    这里连高度一起收掉（max-height + overflow:hidden），圆环就平滑滑回正中心。 */
 .pf-tools{max-height:160px;overflow:hidden}
@@ -262,6 +262,14 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 .pomo-full.pf-zen .pf-hint{opacity:0;pointer-events:none}
 .pomo-full.pf-zen .pf-ph{opacity:0}
 .pomo-full.pf-zen .pf-ph,.pf-ph{transition:opacity .32s ease}
+/* 竖屏：圆环下方那块信息区在沉浸态同样只是「看不见」，会把圆环顶高 35px。
+   连高度和那 10px 间距一起收掉才真正居中。（横屏下它已改成绝对定位，本来就不占位） */
+@media (orientation:portrait){
+  .pf-side{max-height:280px;overflow:hidden}
+  .pomo-full.pf-zen .pf-inner{gap:0}
+  .pomo-full.pf-zen .pf-side{max-height:0}
+  .pomo-full.pf-zen .pf-tools{padding-top:0}
+}
 /* 沉浸时给个极淡的提示点，让用户知道点屏幕能唤回按钮 */
 .pomo-full.pf-zen::after{
   content:"";position:absolute;bottom:calc(env(safe-area-inset-bottom) + 14px);left:50%;

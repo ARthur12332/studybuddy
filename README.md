@@ -131,6 +131,14 @@ npx cap open android      # 用 Android Studio 打包 APK
   顶栏渐变变橙、番茄条阴影变橙、SVG stop 同步、`meta[theme-color]=#e0861a`、写入 localStorage；
   切深色 → `--brand=#f0a03c`（深色那套）；再切「青绿」→ `#0f9e8e`；冷启动种入 `rose + dark`
   → 启动即 `--brand=#ef6a9c`、面板勾选 rose、深浅色段选中 dark。
+- **v3.3 补丁（2026-09-23）：竖屏沉浸态也真正居中**
+  上一轮只修了横屏。做全套检查时用探针量竖屏，发现沉浸态圆环中心仍**偏上 35px** —— 同一个病根：
+  圆环下方那块 `.pf-side` 信息区在沉浸态只是 `opacity:0`，**照样占着约 70px 高**（再加上 `.pf-inner` 的 10px 间距）。
+  现在用 `@media (orientation:portrait)` 把 `.pf-side` 的高度和那段间距一起收掉
+  （横屏下这块已经是绝对定位，本来就不占位，所以横屏不需要重复处理）。
+  实测（视口 496×807）：沉浸态 `offsetY 0px / centerOffset 0px / sideH 0`；
+  唤出态 `.pf-side` 高 54px、`max-height 280px`、`scrollHeight` 未超 → **不裁字**；
+  横屏 874×327 不受影响（仍是 0 / 0，圆环 235×235）。
 - **v3.2（2026-09-23）番茄钟预设**
   番茄钟弹层顶部新增一排**预设**：每个预设自带 **名称 + 时长 + 科目**，**点一下直接开始专注**并进入
   沉浸倒计时（不用每次重选科目、重填名字、重设时长）。首次使用自动生成 4 个考研向默认预设；
@@ -173,6 +181,14 @@ npx cap open android      # 用 Android Studio 打包 APK
   卡片底部原先是 11.5px 的无边框小灰字（手机上又小又难点，他自己提的）。现在两个操作都改成
   **36px 高的药丸按钮**：**编辑 = 品牌渐变实心 + 白字**（一眼能看到），复制 = 描边次级样式。
   实测（496×807 与 496×647）：按钮 60×36、底部行无溢出、页面无横向滚动、`tooSmallBtns = 0`。
+- ⚠️ **写无头探针的两个坑（2026-09-23 全套检查时踩到，留档）**：
+  ① 整个应用包在 `(function(){ "use strict"; ... })()` 里 → **探针拿不到任何内部函数/变量**
+     （`backupPayload` / `importData` / `presets` 全是 undefined）。所以探针只能从 UI 层面驱动，别想着直接调函数。
+  ② 要验「备份导出 → 换设备 → 导入恢复」这条链路，就**打桩剪贴板**再点真实菜单：
+     `Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:t=>{cap=t;return Promise.resolve()},readText:()=>Promise.resolve(cap)}})`
+     然后点 ⋯ →「复制备份到剪贴板」抓内容，删光预设后再点 ⋯ →「从剪贴板导入」，验证走的是真实代码路径。
+     实测：备份 `version=5`、含 `presets`（`id+min+name+subj`）、笔记带 `reviewAt`；
+     删光预设（存储里 0 条、条上 0 个）后导入 → **5 个预设原样回来、笔记仍在**。
 - **v3.0（2026-09-22）换上迭代版基线**（来自微信收到的 `index(12).html`，与本目录
   `archive/studybuddy-迭代版-2026-09-22.html` 逐字节一致）。相对 v2.2 新增：
   **全屏倒计时 + 沉浸模式**（点圆环放大、计时中按钮淡出/点屏唤出/6 秒回沉浸、保持屏幕常亮、
