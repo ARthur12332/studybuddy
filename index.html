@@ -522,14 +522,59 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   flex:0 0 auto;width:42px;height:42px;border-radius:12px;
   border:1px dashed var(--line);background:none;color:var(--muted);
   font-size:18px;line-height:1;cursor:pointer;
+  transition:transform .2s ease,border-color .2s ease,color .2s ease,background .2s ease;
 }
 .preset-mgr:active{transform:scale(.96)}
-.preset-mgr:disabled{opacity:.4}
+/* 展开状态：虚线变实线、＋ 转 45° 变成 ✕，一眼看出「再点一下收起」 */
+.preset-mgr.on{
+  border-style:solid;border-color:var(--brand);color:var(--brand);
+  background:var(--brand-soft);transform:rotate(45deg);
+}
 .preset-empty{
   flex:0 0 auto;font-size:12px;color:var(--muted);padding:12px 2px;
 }
-.preset-list{max-height:40vh;overflow-y:auto}
-.preset-list .stat-row .meta{color:var(--muted);font-size:11.5px;margin-left:6px}
+/* 预设管理面板：增删都留在番茄钟页里，不再跳菜单弹窗 */
+.preset-panel{
+  width:100%;box-sizing:border-box;margin:0 0 12px;padding:11px 12px 12px;
+  border:1px solid var(--line);border-radius:14px;background:var(--card-2);text-align:left;
+}
+.preset-panel[hidden]{display:none}
+.pp-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pp-head>b{font-size:12.5px;color:var(--text)}
+.pp-head small{font-weight:400;font-size:11px;color:var(--muted);margin-left:7px}
+.preset-list{max-height:24vh;overflow-y:auto}
+.preset-list .stat-row{padding:8px 0;font-size:13px}
+.preset-list .stat-row .meta{color:var(--muted);font-size:11.5px;margin-left:7px}
+/* 名字可以省略号，但「删除」必须始终露在右边 */
+.pp-name{flex:1;min-width:0;display:flex;align-items:center}
+.pp-name .pp-t{
+  flex:0 1 auto;min-width:0;
+  color:var(--text);font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pp-name .meta{flex:0 0 auto}
+.pp-del{
+  flex:0 0 auto;margin-left:10px;border:1px solid var(--line);background:var(--card);
+  color:var(--danger);border-radius:999px;padding:5px 13px;
+  font-family:inherit;font-size:12px;line-height:1.2;cursor:pointer;
+  transition:transform .12s ease,background .12s ease;
+}
+.pp-del:active{transform:scale(.95);background:var(--brand-soft)}
+.pp-form{margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
+.pp-form input[type=text],
+.pp-form input[type=number],
+.pp-form select{
+  width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:11px;
+  background:var(--card);color:var(--text);padding:9px 11px;font:inherit;font-size:13px;
+  outline:none;-webkit-appearance:none;appearance:none;
+}
+.pp-form input[type=text]{margin-bottom:8px}
+.pp-row{display:flex;align-items:center;gap:8px}
+.pp-row+.pp-row{margin-top:8px}
+.pp-row>span{flex:0 0 auto;font-size:12px;color:var(--muted)}
+.pp-row input[type=number]{flex:0 0 76px;width:76px;text-align:center}
+.pp-row select{flex:1;min-width:0}
+.pp-row .btn{flex:1;padding:9px 10px;font-size:12.5px}
 
 /* ---------- 间隔复习 ---------- */
 .revcard{
@@ -614,7 +659,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 
   <header>
     <div class="bar">
-      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄预设 · v3.3</small></h1>
+      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄预设 · v3.4</small></h1>
       <button class="icon-btn" id="themeBtn" title="切换深浅色" aria-label="切换深浅色主题">◐</button>
       <button class="icon-btn" id="menuBtn" title="更多" aria-label="更多功能菜单">⋯<span class="thedot" id="bkDot"></span></button>
     </div>
@@ -687,7 +732,6 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   <button class="menu-row" data-act="pasteJson"><span class="em">📥</span><span>从剪贴板导入<small>把之前复制的备份粘回来</small></span></button>
   <button class="menu-row" data-act="sched"><span class="em">📅</span><span>完成的学习日程<small>每个番茄完成的记录，可按天复盘</small></span></button>
   <button class="menu-row" data-act="goals"><span class="em">🎯</span><span>每日目标设置<small>每天都要做的事，天天重置</small></span></button>
-  <button class="menu-row" data-act="presets"><span class="em">⚡</span><span>番茄钟预设<small>起好名字和时长，点一下就开专注</small></span></button>
   <button class="menu-row" data-act="appearance"><span class="em">🎨</span><span>外观<small>深浅色 + 主题色，挑个喜欢的</small></span></button>
   <button class="menu-row" data-act="subjects"><span class="em">🏷</span><span>科目设置<small>数二 / 英二 / 政治 / 半导体物理</small></span></button>
   <button class="menu-row" data-act="clear"><span class="em">🗑</span><span>清空全部<small>谨慎，建议先备份</small></span></button>
@@ -720,7 +764,31 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
     <div class="presetwrap">
       <div class="presets" id="pomoPresets"></div>
       <button class="preset-mgr" id="presetSave" type="button"
-              title="把当前设置存为预设" aria-label="把当前设置存为预设">＋</button>
+              title="添加 / 删除预设" aria-label="添加或删除预设"
+              aria-expanded="false" aria-controls="presetPanel">＋</button>
+    </div>
+
+    <!-- 预设管理：添加 / 删除都在这一页里完成（原来在菜单弹窗里，现在挪进来） -->
+    <div class="preset-panel" id="presetPanel" hidden>
+      <div class="pp-head">
+        <b>管理预设<small id="presetCount"></small></b>
+        <button class="link" id="presetPanelClose" type="button">收起</button>
+      </div>
+      <div class="preset-list" id="presetList"></div>
+      <div class="pp-form">
+        <input type="text" id="presetName" placeholder="名称，例如：极限 30 题"
+               maxlength="24" autocomplete="off" aria-label="预设名称">
+        <div class="pp-row">
+          <input type="number" id="presetMin" min="1" max="180" step="5" inputmode="numeric"
+                 value="45" aria-label="预设时长（分钟）">
+          <span>分钟</span>
+          <select id="presetSubj" aria-label="预设科目"></select>
+        </div>
+        <div class="pp-row">
+          <button class="btn" id="presetFill" type="button">用当前设置</button>
+          <button class="btn primary" id="presetAdd" type="button">添加</button>
+        </div>
+      </div>
     </div>
 
     <div class="subjbar psubj" id="pomoSubj"></div>
@@ -860,26 +928,6 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   </div>
   <div class="dlg-actions">
     <button class="btn primary" id="goalsClose">完成</button>
-  </div>
-</dialog>
-
-<dialog id="presetDlg">
-  <div class="dlg-body">
-    <h3>番茄钟预设</h3>
-    <label>番茄钟里点一下就能直接开始专注（最多 12 个）</label>
-    <div class="preset-list" id="presetList"></div>
-    <label>名称</label>
-    <input type="text" id="presetName" placeholder="例如：极限 30 题" maxlength="24" autocomplete="off">
-    <label>时长（分钟，1~180）</label>
-    <input type="number" id="presetMin" min="1" max="180" step="5" inputmode="numeric" value="45">
-    <label>科目（可选）</label>
-    <select id="presetSubj"></select>
-    <div class="dlg-actions" style="padding:12px 0 0">
-      <button class="btn primary" id="presetAdd">添加预设</button>
-    </div>
-  </div>
-  <div class="dlg-actions">
-    <button class="btn primary" id="presetClose">完成</button>
   </div>
 </dialog>
 
@@ -1844,8 +1892,6 @@ menuDlg.addEventListener("click", (e) => {
     openSched();
   } else if(act === "goals"){
     openGoals();
-  } else if(act === "presets"){
-    openPresets();
   } else if(act === "appearance"){
     openAppear();
   } else if(act === "subjects"){
@@ -2459,33 +2505,55 @@ function applyCustomFocus(){
   savePomo(); paintPomo();
 }
 
-/* ---- 番茄钟预设：渲染 / 一键开始 / 增删 ---- */
+/* ---- 番茄钟预设：渲染 / 一键开始 / 增删 ----
+   增删入口就在番茄钟页内（＋ 展开管理面板），不再从菜单里开弹窗。 */
+let presetPanelOpen = false;
 function renderPresets(){
   const box = $("pomoPresets"); if(!box) return;
   box.innerHTML = "";
   if(!presets.length){
     const d = document.createElement("div");
     d.className = "preset-empty";
-    d.textContent = "还没有预设 —— 先选科目/时长，再点右边 ＋ 存一个";
+    d.textContent = "还没有预设 —— 点右边 ＋ 建一个";
     box.appendChild(d);
-    return;
+  } else {
+    presets.forEach(p => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "preset";
+      b.title = "点一下直接开始专注";
+      const n = document.createElement("span");
+      n.className = "pn"; n.textContent = p.name;
+      const m = document.createElement("span");
+      m.className = "pm";
+      m.textContent = p.min + " 分钟" + (p.subj ? " · " + p.subj : "");
+      b.appendChild(n); b.appendChild(m);
+      b.onclick = () => applyPreset(p);
+      box.appendChild(b);
+    });
   }
-  presets.forEach(p => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "preset";
-    b.title = "点一下直接开始专注";
-    const n = document.createElement("span");
-    n.className = "pn"; n.textContent = p.name;
-    const m = document.createElement("span");
-    m.className = "pm";
-    m.textContent = p.min + " 分钟" + (p.subj ? " · " + p.subj : "");
-    b.appendChild(n); b.appendChild(m);
-    b.onclick = () => applyPreset(p);
-    box.appendChild(b);
-  });
+  /* ＋ 是「展开/收起管理面板」的开关，永远可点（满了也能进去删） */
   const mgr = $("presetSave");
-  if(mgr) mgr.disabled = presets.length >= PRESET_KEEP;
+  if(mgr){
+    mgr.classList.toggle("on", presetPanelOpen);
+    mgr.setAttribute("aria-expanded", presetPanelOpen ? "true" : "false");
+    mgr.title = presetPanelOpen ? "收起预设管理" : "添加 / 删除预设";
+    mgr.setAttribute("aria-label", mgr.title);
+  }
+  const cnt = $("presetCount");
+  if(cnt) cnt.textContent = "· " + presets.length + " / " + PRESET_KEEP;
+}
+/* 展开 / 收起页内管理面板；不传参数就是切一下 */
+function openPresetPanel(on){
+  presetPanelOpen = (on === undefined) ? !presetPanelOpen : !!on;
+  const p = $("presetPanel");
+  if(p) p.hidden = !presetPanelOpen;
+  if(presetPanelOpen){
+    renderPresetList();
+    /* 展开后把它带进视野，免得看着「点了没反应」 */
+    if(p) requestAnimationFrame(() => { try{ p.scrollIntoView({block:"nearest"}); }catch(e){} });
+  }
+  renderPresets();
 }
 /* 一键开始：把预设写进当前番茄钟状态，然后起跑 + 直接进沉浸倒计时 */
 function applyPreset(p){
@@ -2507,7 +2575,7 @@ function addPreset(name, min, subj){
   name = (name || "").trim();
   if(!name){ toast("先给预设起个名字"); return false; }
   if(name.length > 24){ toast("名字太长了，24 字以内"); return false; }
-  if(presets.length >= PRESET_KEEP){ toast("预设最多 " + PRESET_KEEP + " 个，先去菜单里删几个"); return false; }
+  if(presets.length >= PRESET_KEEP){ toast("预设最多 " + PRESET_KEEP + " 个，先删掉几个"); return false; }
   if(presets.some(x => x.name === name)){ toast("已经有同名预设了"); return false; }
   presets.push({ id: uid(), name: name, min: presetMin(min), subj: (subj || "").slice(0, 24) });
   saveRaw(KEY_PRESETS, presets);
@@ -2538,13 +2606,14 @@ function renderPresetList(){
     return;
   }
   list.innerHTML = presets.map((p, i) =>
-    '<div class="stat-row"><span>' +
-      '<span class="dot" style="background:' + subjColor(p.subj) +
-        ';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px"></span>' +
-      esc(p.name) +
-      '<span class="meta">' + p.min + " 分钟" + (p.subj ? " · " + esc(p.subj) : "") + "</span>" +
-    "</span>" +
-    '<button class="link" data-pi="' + i + '">删除</button></div>').join("");
+    '<div class="stat-row">' +
+      '<span class="pp-name">' +
+        '<span class="dot" style="background:' + subjColor(p.subj) +
+          ';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;flex:0 0 auto"></span>' +
+        '<b class="pp-t">' + esc(p.name) + "</b>" +
+        '<span class="meta">' + p.min + " 分钟" + (p.subj ? " · " + esc(p.subj) : "") + "</span>" +
+      "</span>" +
+      '<button class="pp-del" data-pi="' + i + '">删除</button></div>').join("");
   list.querySelectorAll("button[data-pi]").forEach(b => {
     b.onclick = () => {
       const p = presets[Number(b.dataset.pi)];
@@ -2552,11 +2621,6 @@ function renderPresetList(){
     };
   });
 }
-function openPresets(){
-  renderPresetList();
-  $("presetDlg").showModal();
-}
-
 /* ---- 专注时长统计 ---- */
 function fmtDur(m){
   m = Math.round(m || 0);
@@ -2747,7 +2811,8 @@ function initPomo(){
     if(pomo.phase === "focus" && (pomo.running || pomo.paused) && !confirm("跳过这轮专注？本轮不会计入统计。")) return;
     setPhase(pomo.phase === "focus" ? "short" : "focus");
   };
-  $("pomoClose").onclick = () => $("pomoDlg").close();
+  /* 关掉番茄钟时顺手收起预设管理面板，下次打开是干净的一条预设 */
+  $("pomoClose").onclick = () => { openPresetPanel(false); $("pomoDlg").close(); };
   $("pomoAutoLog").onchange = (e) => { pomo.autoLog = !!e.target.checked; savePomo(); };
   $("pomoCustomSet").onclick = applyCustomFocus;
   $("pomoCustom").addEventListener("keydown", (e) => {
@@ -3337,23 +3402,27 @@ function initExtra(){
   renderSubjBar(); renderPomoSubj(); renderExam(); renderBackupTip();
   initReview();                                            // 复习卡与「加入复习」开关的事件委托
   renderPresets();
-  /* 番茄钟预设：＋ 把当前设置存下来；管理弹窗里增删 */
-  $("presetSave").onclick = () => {
-    const name = (pomo.task || "").trim() || (pomo.subj ? pomo.subj + " 专注" : "");
-    if(addPreset(name, pomo.focusMin, pomo.subj)) toast("已存为预设 · 下次点一下就开");
+  /* 番茄钟预设：＋ 展开页内管理面板；增删都在番茄钟页里完成 */
+  $("presetSave").onclick = () => openPresetPanel();
+  $("presetPanelClose").onclick = () => openPresetPanel(false);
+  $("presetFill").onclick = () => {
+    $("presetMin").value = pomo.focusMin;
+    if(pomo.subj) $("presetSubj").value = pomo.subj;
+    const nmEl = $("presetName");
+    if(!nmEl.value.trim()) nmEl.value = (pomo.task || "").trim() || (pomo.subj ? pomo.subj + " 专注" : "");
+    nmEl.focus();
   };
   $("presetAdd").onclick = () => {
     const ok = addPreset($("presetName").value, $("presetMin").value, $("presetSubj").value);
     if(ok){
       $("presetName").value = "";
       renderPresetList();
-      toast("已添加预设");
+      toast("已添加预设 · 点上面那一条就能开始");
     }
   };
   $("presetName").addEventListener("keydown", (e) => {
     if(e.key === "Enter"){ e.preventDefault(); $("presetAdd").click(); }
   });
-  $("presetClose").onclick = () => $("presetDlg").close();
   $("appearClose").onclick = () => $("appearDlg").close();
   $("examStrip").onclick = openExam;
   $("examSave").onclick = saveExam;
