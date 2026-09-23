@@ -20,6 +20,9 @@
   --bg:#f4f5f9; --card:#ffffff; --card-2:#fafbfe;
   --text:#1b1f2a; --muted:#676f85; --line:#e6e8f0;
   --brand:#5b6cff; --brand-2:#8a5cff; --brand-soft:#eaecff;
+  /* 主题色的「RGB 分量」：给阴影/发光用的，换主题色时由 applyAccent() 一起换掉。
+     写成 rgba(var(--brand-glow),.85) 这种形式，就能让所有光晕跟着强调色走。 */
+  --brand-glow:91,108,255;
   --danger:#e5484d; --ok:#2f9e6e;
   --shadow:0 1px 2px rgba(20,24,40,.05), 0 6px 18px -8px rgba(20,24,40,.16);
   --radius:16px;
@@ -38,7 +41,7 @@ html[data-theme="dark"]{
   --pf-line:rgba(255,255,255,.18);
   --pf-btn-bg:rgba(255,255,255,.07);
   --pf-ring-bg:rgba(255,255,255,.13);
-  --pf-num-shadow:0 6px 40px rgba(91,108,255,.45);
+  --pf-num-shadow:0 6px 40px rgba(var(--brand-glow),.45);
 }
 html[data-theme="light"]{
   --pf-bg:radial-gradient(120% 90% at 50% 0%, #ffffff 0%, #eef0f8 58%, #e2e5f2 100%);
@@ -47,7 +50,7 @@ html[data-theme="light"]{
   --pf-line:rgba(21,26,40,.14);
   --pf-btn-bg:rgba(255,255,255,.72);
   --pf-ring-bg:rgba(21,26,40,.1);
-  --pf-num-shadow:0 4px 30px rgba(91,108,255,.28);
+  --pf-num-shadow:0 4px 30px rgba(var(--brand-glow),.28);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -132,7 +135,7 @@ main{flex:1;overflow-y:auto;padding:6px 16px 18px;-webkit-overflow-scrolling:tou
 .note .foot .act.edit{
   border-color:transparent;color:#fff;
   background:linear-gradient(135deg,var(--brand),var(--brand-2));
-  box-shadow:0 4px 14px -8px rgba(91,108,255,.95);
+  box-shadow:0 4px 14px -8px rgba(var(--brand-glow),.95);
 }
 .link{border:0;background:none;color:var(--muted);font-size:11.5px;cursor:pointer;padding:2px 4px;font-family:inherit}
 .link:hover{color:var(--brand)}
@@ -388,7 +391,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;width:100%;
   border:0;border-radius:14px;padding:13px 15px;margin-bottom:10px;cursor:pointer;
   background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;
-  box-shadow:0 8px 20px -10px rgba(91,108,255,.85);
+  box-shadow:0 8px 20px -10px rgba(var(--brand-glow),.85);
   font:inherit;text-align:left;
 }
 .pomobar:active{transform:scale(.99)}
@@ -398,8 +401,8 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 .pomobar .pfill{position:absolute;left:0;bottom:0;height:3px;width:0;background:rgba(255,255,255,.85);transition:width .5s linear}
 .pomobar.live{animation:pomopulse 2.6s ease-in-out infinite}
 @keyframes pomopulse{
-  0%,100%{box-shadow:0 8px 20px -10px rgba(91,108,255,.85)}
-  50%{box-shadow:0 10px 26px -8px rgba(91,108,255,1)}
+  0%,100%{box-shadow:0 8px 20px -10px rgba(var(--brand-glow),.85)}
+  50%{box-shadow:0 10px 26px -8px rgba(var(--brand-glow),1)}
 }
 .pomobar.rest{background:linear-gradient(135deg,#2f9e6e,#57c99a);box-shadow:0 8px 20px -10px rgba(47,158,110,.8)}
 
@@ -464,6 +467,29 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   color:var(--text);padding:10px 12px;font:inherit;font-size:16px;outline:none;
 }
 .dlg-body input+label{margin-top:12px}
+
+/* ---------- 外观（深浅色 + 主题色） ---------- */
+.seg{display:flex;gap:7px}
+.seg .mini{flex:1;text-align:center;padding:9px 4px;font-size:12.5px}
+.seg .mini.on{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:600}
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.swatch{
+  position:relative;width:46px;height:46px;border-radius:14px;cursor:pointer;
+  border:2px solid transparent;padding:0;
+  background:linear-gradient(135deg,var(--c1),var(--c2));
+  box-shadow:var(--shadow);
+}
+.swatch:active{transform:scale(.95)}
+.swatch.on{border-color:var(--text)}
+.swatch.on::after{
+  content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:19px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+.swatch .swn{
+  position:absolute;left:50%;bottom:-17px;transform:translateX(-50%);
+  font-size:10px;color:var(--muted);white-space:nowrap;
+}
+.swatches{padding-bottom:16px}
 
 /* ---------- 番茄钟预设 ---------- */
 .presetwrap{display:flex;align-items:center;gap:8px;width:100%;padding:0 0 12px}
@@ -580,7 +606,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 
   <header>
     <div class="bar">
-      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄预设 · v3.2</small></h1>
+      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄预设 · v3.3</small></h1>
       <button class="icon-btn" id="themeBtn" title="切换深浅色" aria-label="切换深浅色主题">◐</button>
       <button class="icon-btn" id="menuBtn" title="更多" aria-label="更多功能菜单">⋯<span class="thedot" id="bkDot"></span></button>
     </div>
@@ -654,6 +680,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   <button class="menu-row" data-act="sched"><span class="em">📅</span><span>完成的学习日程<small>每个番茄完成的记录，可按天复盘</small></span></button>
   <button class="menu-row" data-act="goals"><span class="em">🎯</span><span>每日目标设置<small>每天都要做的事，天天重置</small></span></button>
   <button class="menu-row" data-act="presets"><span class="em">⚡</span><span>番茄钟预设<small>起好名字和时长，点一下就开专注</small></span></button>
+  <button class="menu-row" data-act="appearance"><span class="em">🎨</span><span>外观<small>深浅色 + 主题色，挑个喜欢的</small></span></button>
   <button class="menu-row" data-act="subjects"><span class="em">🏷</span><span>科目设置<small>数二 / 英二 / 政治 / 半导体物理</small></span></button>
   <button class="menu-row" data-act="clear"><span class="em">🗑</span><span>清空全部<small>谨慎，建议先备份</small></span></button>
   <button class="menu-row" data-act="close"><span class="em">✕</span><span>关闭</span></button>
@@ -845,6 +872,24 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
   </div>
   <div class="dlg-actions">
     <button class="btn primary" id="presetClose">完成</button>
+  </div>
+</dialog>
+
+<dialog id="appearDlg">
+  <div class="dlg-body">
+    <h3>外观</h3>
+    <label>深浅色</label>
+    <div class="seg" id="themeSeg">
+      <button class="mini" type="button" data-th="auto">跟随系统</button>
+      <button class="mini" type="button" data-th="light">浅色</button>
+      <button class="mini" type="button" data-th="dark">深色</button>
+    </div>
+    <label style="margin-top:16px">主题色</label>
+    <div class="swatches" id="accentWrap"></div>
+    <p class="hint">主题色会用在顶栏、番茄钟条、按钮、图表和全屏倒计时上；深浅色是另一套开关，两者可以随意搭配。</p>
+  </div>
+  <div class="dlg-actions">
+    <button class="btn primary" id="appearClose">完成</button>
   </div>
 </dialog>
 
@@ -1793,6 +1838,8 @@ menuDlg.addEventListener("click", (e) => {
     openGoals();
   } else if(act === "presets"){
     openPresets();
+  } else if(act === "appearance"){
+    openAppear();
   } else if(act === "subjects"){
     renderSubjDlg(); $("subjDlg").showModal();
   } else if(act === "import"){
@@ -1815,15 +1862,80 @@ fileInput.onchange = () => {
 };
 
 /* ---------------- 主题 ---------------- */
+/* 主题色：一套 = 主色 / 渐变色 / 浅底 三个变量 + 一组 RGB 分量（阴影发光用）。
+   深浅色各有一套取值 —— 深色背景上要用更亮的主色才够对比。
+   换色只改 <html> 上的 CSS 变量，其余样式全部沿用，所以顶栏、番茄条、按钮、
+   图表、全屏倒计时的环都会自动跟着走。 */
+const KEY_ACCENT = "studybuddy.accent";
+const ACCENTS = [
+  { id:"violet", name:"蓝紫", light:["#5b6cff","#8a5cff","#eaecff"], dark:["#7c8bff","#a77cff","#232744"], glow:"91,108,255" },
+  { id:"ocean",  name:"海蓝", light:["#1f7ae0","#3aa0f5","#e4f0fd"], dark:["#4b9df0","#74bbff","#16304d"], glow:"31,122,224" },
+  { id:"teal",   name:"青绿", light:["#0f9e8e","#2ec0a6","#e0f7f3"], dark:["#3fcbb8","#67e0cd","#14342f"], glow:"15,158,142" },
+  { id:"green",  name:"松绿", light:["#2b9a63","#4bbd85","#e4f6ec"], dark:["#48c084","#6ed7a4","#16342a"], glow:"43,154,99" },
+  { id:"amber",  name:"暖橙", light:["#e0861a","#f5a524","#fdf1dd"], dark:["#f0a03c","#fbbf5e","#3a2b12"], glow:"224,134,26" },
+  { id:"rose",   name:"玫红", light:["#d93a72","#f0609b","#fde8f0"], dark:["#ef6a9c","#f78fb8","#3d1c2a"], glow:"217,58,114" }
+];
+let accentId = "violet";
+function currentAccent(){
+  return ACCENTS.find(a => a.id === accentId) || ACCENTS[0];
+}
+function applyAccent(){
+  const a = currentAccent();
+  const dark = document.documentElement.dataset.theme === "dark";
+  const c = dark ? a.dark : a.light;
+  const el = document.documentElement;
+  el.style.setProperty("--brand", c[0]);
+  el.style.setProperty("--brand-2", c[1]);
+  el.style.setProperty("--brand-soft", c[2]);
+  el.style.setProperty("--brand-glow", a.glow);
+  el.setAttribute("data-accent", a.id);
+  /* 番茄钟/全屏倒计时的环用的是 SVG 渐变，颜色写死在 <stop> 里，得单独同步 */
+  const stops = document.querySelectorAll("#pomoGrad stop, #pfGrad stop");
+  stops.forEach((st, i) => st.setAttribute("stop-color", i % 2 === 0 ? c[0] : c[1]));
+  const meta = document.querySelector("meta[name=theme-color]");
+  if(meta) meta.setAttribute("content", dark ? "#101218" : c[0]);
+}
+function loadAccent(){
+  let v = null;
+  try{ v = localStorage.getItem(KEY_ACCENT); }catch(e){}
+  if(v && ACCENTS.some(a => a.id === v)) accentId = v;
+}
+function renderAppearDlg(){
+  const seg = $("themeSeg");
+  if(seg){
+    let cur = "auto";
+    try{ cur = localStorage.getItem(KEY_THEME) || "auto"; }catch(e){}
+    seg.querySelectorAll("button[data-th]").forEach(b => {
+      b.classList.toggle("on", b.dataset.th === cur);
+    });
+  }
+  const box = $("accentWrap");
+  if(!box) return;
+  box.innerHTML = ACCENTS.map(a =>
+    '<button class="swatch' + (a.id === accentId ? " on" : "") + '" type="button" data-ac="' + a.id +
+    '" style="--c1:' + a.light[0] + ";--c2:" + a.light[1] + '" aria-label="主题色 ' + esc(a.name) + '">' +
+    '<span class="swn">' + esc(a.name) + "</span></button>").join("");
+  box.querySelectorAll("button[data-ac]").forEach(b => {
+    b.onclick = () => {
+      accentId = b.dataset.ac;
+      try{ localStorage.setItem(KEY_ACCENT, accentId); }catch(e){}
+      applyAccent(); renderAppearDlg();
+      toast("主题色 · " + currentAccent().name);
+    };
+  });
+}
+function openAppear(){ renderAppearDlg(); $("appearDlg").showModal(); }
+
 function applyTheme(mode){
   const dark = mode === "dark" || (mode === "auto" && window.matchMedia("(prefers-color-scheme:dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  document.querySelector('meta[name=theme-color]').setAttribute("content", dark ? "#101218" : "#5b6cff");
+  applyAccent();       // 主题色分深浅两套取值，跟着主题一起刷新
   applyPfTheme();      // 主题真正变化时才刷新全屏层按钮文案，不放在每秒 tick 里空转
 }
 function initTheme(){
   let saved = null;
   try{ saved = localStorage.getItem(KEY_THEME); }catch(e){}
+  loadAccent();                 // 必须在 applyTheme 之前：它要按当前深浅挑那一套主题色
   applyTheme(saved || "auto");
   window.matchMedia("(prefers-color-scheme:dark)").addEventListener("change", () => {
     let cur = null; try{ cur = localStorage.getItem(KEY_THEME); }catch(e){}
@@ -1835,6 +1947,14 @@ function initTheme(){
     applyTheme(cur);
     toast(cur === "dark" ? "深色模式" : "浅色模式");
   };
+  document.querySelectorAll("#themeSeg button[data-th]").forEach(b => {
+    b.onclick = () => {
+      try{ localStorage.setItem(KEY_THEME, b.dataset.th); }catch(e){}
+      applyTheme(b.dataset.th);
+      renderAppearDlg();
+      toast(b.textContent);
+    };
+  });
 }
 
 /* ---------------- 番茄钟 ---------------- */
@@ -3226,6 +3346,7 @@ function initExtra(){
     if(e.key === "Enter"){ e.preventDefault(); $("presetAdd").click(); }
   });
   $("presetClose").onclick = () => $("presetDlg").close();
+  $("appearClose").onclick = () => $("appearDlg").close();
   $("examStrip").onclick = openExam;
   $("examSave").onclick = saveExam;
   $("examCancel").onclick = () => $("examDlg").close();
@@ -3340,7 +3461,7 @@ function initManifest(){
     scope: ".",
     display: "standalone",
     background_color: "#101218",
-    theme_color: "#5b6cff",
+    theme_color: currentAccent().light[0],
     description: "轻量日志笔记：随手记，用 #标签 分类，支持搜索、导出、离线使用。",
     icons: [
       { src: icon, sizes: "192x192", type: "image/svg+xml", purpose: "any" },
