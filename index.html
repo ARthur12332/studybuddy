@@ -744,7 +744,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
 
   <header>
     <div class="bar">
-      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄钟 · v4.0</small></h1>
+      <h1>StudyBuddy<small id="subtitle">27 考研 · 间隔复习 · 番茄钟 · v4.0.1</small></h1>
       <button class="icon-btn" id="themeBtn" title="切换深浅色" aria-label="切换深浅色主题">◐</button>
       <button class="icon-btn" id="menuBtn" title="更多" aria-label="更多功能菜单">⋯<span class="thedot" id="bkDot"></span></button>
     </div>
@@ -771,7 +771,7 @@ html.pf-lock, html.pf-lock body{overflow:hidden;height:100%}
       <button class="gclose" id="guideClose" type="button">知道了，不再显示</button>
     </div>
     <div class="exam" id="examStrip" title="点一下设置考试日期">
-      <span class="cd"><b id="examDays">--</b>天后</span>
+      <span class="cd"><b id="examDays">--</b><span id="examUnit">天后</span></span>
       <span class="ename" id="examName">27 考研初试</span>
       <span class="go">设置 ›</span>
     </div>
@@ -1407,6 +1407,58 @@ function normalizeNote(n){
     reviewLast: revNormDay(n.reviewLast)
   };
 }
+/* 统计 / 日程里的数字同样要过一遍校验。
+   pomoLog 是一层层 { 日期: {count,minutes} } 的对象，只要有一个值被改坏成 null，
+   sumAllPomo() 取 .count 时就会直接抛异常，整个「专注统计」弹层空白一片；
+   sessions 里 minutes 是字符串时 fmtDur 会算出 NaN（「已完成 NaN 小时」）。
+   所以这两份数据读进来时统一清洗，坏记录丢掉，而不是让它带着 NaN 混进统计。 */
+function sanitizeNum(v){
+  const n = Number(v);
+  return (isFinite(n) && n > 0) ? Math.round(n) : 0;
+}
+function sanitizePomoLog(raw){
+  const out = {};
+  if(!raw || typeof raw !== "object") return out;
+  for(const k in raw){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(k)) continue;          // 只认日期键
+    const v = raw[k];
+    if(!v || typeof v !== "object") continue;              // null / 数字 / 字符串一律丢掉
+    const cnt = sanitizeNum(v.count), mins = sanitizeNum(v.minutes);
+    if(!cnt && !mins) continue;
+    const sub = {};
+    if(v.subj && typeof v.subj === "object"){
+      for(const s in v.subj){
+        const sv = v.subj[s];
+        if(!sv || typeof sv !== "object") continue;
+        const c = sanitizeNum(sv.count), m = sanitizeNum(sv.minutes);
+        if(c || m) sub[s] = { count: c, minutes: m };
+      }
+    }
+    out[k] = { count: cnt, minutes: mins, subj: sub };
+  }
+  return out;
+}
+function sanitizeSession(s){
+  if(!s || typeof s !== "object") return null;
+  const m = Number(s.minutes);
+  if(!isFinite(m) || m <= 0) return null;                  // 负数 / "abc" / 缺失：这条不要了
+  const iso = (v) => (typeof v === "string" && !isNaN(new Date(v).getTime())) ? v : null;
+  const start = iso(s.start);
+  const day = revNormDay(s.day) || (start ? dayKey(new Date(start)) : "");
+  if(!day) return null;                                    // 连日期都认不出来，塞进日程只会显示成 --:--
+  return {
+    id: (s.id && String(s.id)) || uid(),
+    day: day,
+    start: start,
+    end: iso(s.end),
+    minutes: Math.round(m),
+    subj: typeof s.subj === "string" ? s.subj : "",
+    task: typeof s.task === "string" ? s.task : ""
+  };
+}
+function sanitizeSessions(raw){
+  return Array.isArray(raw) ? raw.map(sanitizeSession).filter(Boolean) : [];
+}
 function load(){
   let raw = null;
   try{
@@ -1509,11 +1561,11 @@ function loadExtra(){
   pruneGoalLog();
   try{
     const ss = JSON.parse(localStorage.getItem(KEY_SESS) || "null");
-    sessions = Array.isArray(ss) ? ss.filter(x => x && x.minutes) : [];
+    sessions = sanitizeSessions(ss);
   }catch(e){ sessions = []; }
   try{
     const ar = JSON.parse(localStorage.getItem(KEY_SESS_ARC) || "null");
-    archivedSessions = Array.isArray(ar) ? ar.filter(x => x && x.minutes) : [];
+    archivedSessions = sanitizeSessions(ar);
   }catch(e){ archivedSessions = []; }
   /* 历史版本或手工改过的数据可能不是正序，读入后立刻归位，
      否则 archiveSessions() 会把「最新的」当成「最旧的」归档掉。 */
@@ -1563,14 +1615,12 @@ function mergeSessions(incoming){
   const have = new Set(sessions.map(s => s.id).concat(archivedSessions.map(s => s.id)));
   let added = 0;
   incoming.forEach(s => {
-    if(!s || !s.minutes || have.has(s.id)) return;
-    sessions.push({
-      id: s.id || uid(),
-      day: s.day || dayKey(s.start || new Date()),
-      start: s.start || null, end: s.end || null,
-      minutes: s.minutes, subj: s.subj || "", task: s.task || ""
-    });
-    have.add(s.id);
+    /* 走和本地读取同一套校验：导入的备份里 minutes 可能是 "abc"，
+       直接 push 进去会让「已完成 NaN 分钟」一直挂在日程里 */
+    const sn = sanitizeSession(s);
+    if(!sn || have.has(sn.id)) return;
+    sessions.push(sn);
+    have.add(sn.id);
     added++;
   });
   /* 关键：导入的备份可能来自别的设备、或顺序与本地不一致，push 会破坏「正序」约定。
@@ -1739,9 +1789,15 @@ function renderStats(){
 }
 let listLimit = LIST_STEP;                                // 当前渲染条数上限（分页）
 function render(){
-  /* 已经有记录了，首次引导就没必要占着位置（不必等用户手动点掉） */
+  /* 首次引导卡：只在「一条记录都没有」且「没点过知道了」时出现。
+     两个方向都要管 —— 原来只负责「有记录就藏」，于是把记录全删光之后，
+     同一会话里引导卡不会回来，得刷新才一致。 */
   const gd = $("guide");
-  if(gd && !gd.hidden && notes.length) gd.hidden = true;
+  if(gd){
+    let guideSeen = false;
+    try{ guideSeen = !!localStorage.getItem(KEY_GUIDE); }catch(e){}
+    gd.hidden = guideSeen || notes.length > 0;
+  }
   renderStats();
   renderChips();
   renderExam();
@@ -1893,7 +1949,7 @@ let editRevPick = null;
 const EDIT_REV_OPTS = [["off", "不复习"]].concat(
   REV_STEPS.map(d => [String(d), d === 1 ? "明天" : d + " 天后"])
 );
-function markEditRev(cur){
+function markEditRev(cur, stage){
   const box = $("editRev"); if(!box) return;
   const d = cur ? dayDiff(revToday(), cur) : null;
   box.querySelectorAll("button[data-rvd]").forEach(b => {
@@ -1903,8 +1959,13 @@ function markEditRev(cur){
   });
   const now = $("editRevNow");
   if(now){
+    /* 没在队列里还有两种情况：从没排过复习，和已经走完 7 轮毕业了。
+       原来一律写「未排入复习」，毕业的笔记看起来就像从没排进过复习队列。 */
+    const st = Math.max(0, Math.floor(Number(stage) || 0));
     if(!cur){
-      now.textContent = "当前：未排入复习";
+      now.textContent = st >= REV_MAX
+        ? "当前：已毕业（" + REV_MAX + " 轮都复习完了）"
+        : (st > 0 ? "当前：未排入复习（已复习 " + st + " 轮）" : "当前：未排入复习");
     }else{
       const dd = dayDiff(revToday(), cur);
       const when = dd < 0 ? "已逾期 " + (-dd) + " 天" : (dd === 0 ? "就是今天" : dd + " 天后");
@@ -1916,9 +1977,10 @@ function renderEditRev(n){
   const box = $("editRev"); if(!box) return;
   editRevPick = null;
   const cur = (n && n.reviewAt) ? n.reviewAt : "";
+  const stage = (n && n.reviewStage) || 0;
   box.innerHTML = EDIT_REV_OPTS.map(o =>
     '<button class="mini" type="button" data-rvd="' + o[0] + '">' + o[1] + "</button>").join("");
-  markEditRev(cur);
+  markEditRev(cur, stage);
   const now = $("editRevNow");
   if(now){
     now.innerHTML = cur
@@ -1929,7 +1991,9 @@ function renderEditRev(n){
   if(hint){
     hint.textContent = cur
       ? "间隔按 1/2/4/7/15/30/60 天往后推（上面就是这些档位）。选别的档位 = 从第一轮重新开始。"
-      : "想在忘掉之前被提醒，选「明天」或「2 天后」即可；不想要就选「不复习」。";
+      : (stage >= REV_MAX
+          ? "这条已经复习完 " + REV_MAX + " 轮毕业了，不会再冒出来提醒。想再刷一遍就随便选个档位，会从第一轮重新开始。"
+          : "想在忘掉之前被提醒，选「明天」或「2 天后」即可；不想要就选「不复习」。");
   }
 }
 function openEdit(n){
@@ -2188,9 +2252,9 @@ function loadPomo(){
     if(typeof s.task === "string") pomo.task = s.task;
   }
   try{
-    const l = JSON.parse(localStorage.getItem(KEY_POMOLOG) || "null");
-    if(l && typeof l === "object") pomoLog = l;
-  }catch(e){}
+    /* 过一遍清洗：坏掉的日期桶会让「专注统计」整块算不出来 */
+    pomoLog = sanitizePomoLog(JSON.parse(localStorage.getItem(KEY_POMOLOG) || "null"));
+  }catch(e){ pomoLog = {}; }
   if(!(pomo.remainMs > 0)) pomo.remainMs = phaseTotalMs(pomo.phase);
   /* 关掉页面/切到别的标签页期间已经跑完：这里直接补结算。
      以前只把它降级成「已暂停」，而调用方的结算条件是 `pomo.running && endAt 已过期`，
@@ -2812,7 +2876,12 @@ function sumSince(fromKey){
 }
 function sumAllPomo(){
   let count = 0, minutes = 0;
-  for(const k in pomoLog){ count += pomoLog[k].count || 0; minutes += pomoLog[k].minutes || 0; }
+  for(const k in pomoLog){
+    const v = pomoLog[k];
+    if(!v) continue;                                       // 坏值不能直接把整个弹层炸掉
+    count += Number(v.count) || 0;
+    minutes += Number(v.minutes) || 0;
+  }
   return {count, minutes};
 }
 function startOfWeekKey(){
@@ -2836,12 +2905,12 @@ function weekDays(offsetWeeks){
   }
   return out;
 }
-const dayMinutes = (k) => (pomoLog[k] && pomoLog[k].minutes) || 0;
+const dayMinutes = (k) => Number(pomoLog[k] && pomoLog[k].minutes) || 0;
 function sumKeys(keys){
   let count = 0, minutes = 0;
   keys.forEach(k => {
     const v = pomoLog[k];
-    if(v){ count += v.count || 0; minutes += v.minutes || 0; }
+    if(v){ count += Number(v.count) || 0; minutes += Number(v.minutes) || 0; }
   });
   return { count: count, minutes: minutes };
 }
@@ -3069,11 +3138,16 @@ function renderExam(){
   const el = $("examStrip"); if(!el || !$("examName") || !$("examDays")) return;
   const left = examDaysLeft();
   $("examDays").textContent = left === null ? "--" : String(Math.abs(left));
+  /* 单位要跟着正负走：考完之后原来还硬写着「天后」，右边名字却写着「已考完 N 天」，
+     同一行里自相矛盾（把日期设成过去的日子就能看到）。 */
+  const unit = $("examUnit");
+  if(unit) unit.textContent = (left !== null && left < 0) ? "天前" : "天后";
   if(left === null) $("examName").textContent = exam.name + "（未设置日期）";
   else if(left === 0) $("examName").textContent = "今天就考，加油！";
   else if(left > 0) $("examName").textContent = exam.name + " · " + exam.date.slice(5).replace("-", "/");
   else $("examName").textContent = exam.name + " · 已考完 " + Math.abs(left) + " 天";
-  el.classList.toggle("urgent", left !== null && left <= 100);
+  /* 考完了就别再高亮提醒了：urgent 原来是 left <= 100，负数也满足，于是考完之后红边一直亮着 */
+  el.classList.toggle("urgent", left !== null && left >= 0 && left <= 100);
 }
 const EXAM_NODES =
   "关键节点（预估，以教育部 / 研招网公告为准）\n" +
@@ -3367,6 +3441,8 @@ function mergePomoLog(incoming){
                   subj: Object.assign({}, (src.subj || {})) };
     pomoLog[k] = out;
   }
+  /* 合并完再统一清洗一次：外来备份里的 count/minutes 可能是字符串或负数 */
+  pomoLog = sanitizePomoLog(pomoLog);
   savePomoLog();
 }
 function importData(text){

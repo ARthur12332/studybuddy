@@ -1,19 +1,5 @@
-# 编辑器与系统杂物
-Thumbs.db
-.DS_Store
-desktop.ini
-*.log
-
-# 自检时产生的临时文件
-_check.js
 # 无头测试用的临时探针页（不入库）
 _probe*.html
 _shot*.html
-
-# v4.0 验收用的临时页（iframe 包装 + 应用副本）
-_v40_*.html
-_verify_*.html
-
-# v4.0 验收用的临时页（iframe 包装 + 应用副本）
 _v40_*.html
 _verify_*.html
