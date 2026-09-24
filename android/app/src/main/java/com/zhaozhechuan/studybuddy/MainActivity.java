@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -11,6 +12,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
@@ -138,8 +140,9 @@ public class MainActivity extends Activity {
     /** 网页里点导入时挂在半空中的回调，等系统文件选择器返回。 */
     private ValueCallback<Uri[]> fileCallback;
 
-    /** 暴露给网页的入口：只有「保存文件」和「同步系统栏配色」两个，
-     *  不把 Activity 递出去 —— 网页能碰到的面越小越好。 */
+    /** 暴露给网页的入口：只有「保存文件」「同步系统栏配色」「横屏」「沉浸」四个动作，
+     *  每个都是「请求」，参数里没有能反过来操作 Activity 的东西 ——
+     *  网页能碰到的面越小越好。 */
     public class Bridge {
         @JavascriptInterface
         public void saveFile(String name, String content) {
@@ -151,6 +154,41 @@ public class MainActivity extends Activity {
             final int status = parseColor(statusColor, FALLBACK_TOP);
             final int nav = parseColor(navColor, FALLBACK_BOTTOM);
             runOnUiThread(() -> applySystemBars(status, nav));
+        }
+
+        /**
+         * 横屏开关。
+         *
+         * <p>网页那边的 {@code requestFullscreen()} 在 WebView 里是**空转** ——
+         * 宿主没实现 {@code onShowCustomView} 时它一定失败，跟着
+         * {@code screen.orientation.lock()} 也因为「不在全屏」而一起失败。
+         * 所以「横屏」按钮点了没反应。转屏是 Activity 的事，直接在这儿做。
+         *
+         * <p>用 SENSOR_LANDSCAPE：横过来之后左右翻转仍跟着重力走，
+         * 不会出现「手机转正了画面还倒着」。
+         */
+        @JavascriptInterface
+        public void setLandscape(final boolean on) {
+            runOnUiThread(() -> {
+                try {
+                    setRequestedOrientation(on
+                            ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                            : ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                } catch (Throwable ignored) {
+                    /* 转不了就维持原样，不影响计时 */
+                }
+            });
+        }
+
+        /**
+         * 沉浸模式开关：连状态栏一起收掉。
+         *
+         * <p>只靠网页 CSS 淡出按钮不算真沉浸 —— 顶上永远横着一条主题色的状态栏
+         * （用户报的就是这个）。这里把状态栏和导航栏都隐藏，退出时恢复。
+         */
+        @JavascriptInterface
+        public void setImmersive(final boolean on) {
+            runOnUiThread(() -> applyImmersive(on));
         }
     }
 
@@ -335,6 +373,43 @@ public class MainActivity extends Activity {
     }
 
     /**
+     * 沉浸模式：把状态栏和导航栏收起来 / 放回去。
+     *
+     * <p>网页那边的「沉浸」原本只是 CSS 把按钮淡出，系统栏还在 ——
+     * 于是全屏倒计时顶上永远横着一条主题色的带子，跟安静的倒计时界面很割裂。
+     * 真正的沉浸要把系统栏也收掉，只留倒计时。
+     *
+     * <p>收起时用「边缘一划临时唤出」的行为（transient by swipe）：
+     * 时间、电量想看还是能看，不至于把人憋死。
+     *
+     * <p>和 {@link #applySystemBars} 一样，整段都是锦上添花 ——
+     * 收不掉系统栏顶多多一条带子，绝不能让应用起不来，所以连 Throwable 一起接住。
+     */
+    private void applyImmersive(boolean on) {
+        try {
+            Window w = getWindow();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ImmersiveApi30.apply(w, on);
+            } else {
+                View decor = w.getDecorView();
+                int flags = decor.getSystemUiVisibility();
+                if (on) {
+                    flags |= View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+                } else {
+                    flags &= ~(View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                }
+                decor.setSystemUiVisibility(flags);
+            }
+        } catch (Throwable ignored) {
+            /* 收不掉系统栏就维持原样，计时与交互都不受影响 */
+        }
+    }
+
+    /**
      * 只为 Android 11+ 服务的一段代码，单独关在一个类里。
      *
      * <p>这么做是为了让 ART 只在真正需要（SDK ≥ 30）时才去加载这个类：
@@ -352,6 +427,28 @@ public class MainActivity extends Activity {
             if (darkIconsOnStatus) appearance |= WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
             if (darkIconsOnNav) appearance |= WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
             c.setSystemBarsAppearance(appearance, mask);
+        }
+    }
+
+    /**
+     * 沉浸模式的 Android 11+ 实现，理由同上单独关起来：
+     * {@code WindowInsets.Type} 在 API 30 以下根本不存在，
+     * 老系统上它连被碰都不该被碰。
+     */
+    @RequiresApi(Build.VERSION_CODES.R)
+    private static final class ImmersiveApi30 {
+        static void apply(Window w, boolean on) {
+            WindowInsetsController c = w.getInsetsController();
+            if (c == null) return;
+            final int bars = WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars();
+            if (on) {
+                /* 边缘一划临时调出系统栏，松手自动收回 */
+                c.setSystemBarsBehavior(
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                c.hide(bars);
+            } else {
+                c.show(bars);
+            }
         }
     }
 

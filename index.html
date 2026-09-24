@@ -2584,8 +2584,39 @@ let wakeLock = null;
 let zenTimer = null;          // 呼出状态下的自动回隐计时器
 let zenTouched = false;       // 用户是否手动点过屏幕（点过就先不自动隐藏）
 
+/* ---- 原生桥（只有装进 WebView 壳里才有这几个方法；电脑浏览器上自动退化成纯 Web 方案） ---- */
+let pfLandscape = false;      // 当前是否已请原生锁了横屏
+let pfImmersive = false;      // 当前是否已请原生收起系统栏
+
+function syncPfFullBtn(){
+  const fb = $("pfFullApi");
+  if(fb) fb.textContent = pfLandscape ? "竖屏" : "横屏";
+}
+
+/* 只在状态真的翻转时才过桥 —— 重复调用会让系统栏闪一下 */
+function setNativeImmersive(on){
+  on = !!on;
+  if(on === pfImmersive) return;
+  pfImmersive = on;
+  try{
+    if(window.StudyBuddyNative && StudyBuddyNative.setImmersive) StudyBuddyNative.setImmersive(on);
+  }catch(e){}
+}
+function setNativeLandscape(on){
+  on = !!on;
+  if(on === pfLandscape){ syncPfFullBtn(); return; }
+  pfLandscape = on;
+  try{
+    if(window.StudyBuddyNative && StudyBuddyNative.setLandscape) StudyBuddyNative.setLandscape(on);
+  }catch(e){}
+  syncPfFullBtn();
+}
+
 /* 沉浸模式：计时中把按钮和文字淡出，只留倒计时；点屏幕再唤出 */
 function setZen(on){
+  /* 沉浸 = 网页把按钮淡出 + 原生把系统栏一起收掉。
+     只做前一半的话，全屏倒计时顶上永远横着一条主题色的状态栏。 */
+  setNativeImmersive(on);
   const el = $("pomoFull");
   if(!el) return;
   el.classList.toggle("pf-zen", !!on);
@@ -2642,6 +2673,7 @@ function openPomoFull(){
   zenTouched = false;
   setZen(false);
   applyPfTheme();
+  syncPfFullBtn();       // 按钮该写「横屏」还是「竖屏」，取决于原生当前有没有锁着
   syncPomoFull();
   refreshZen();
   /* 全屏期间持续亮屏，别看着看着黑掉 */
@@ -2661,6 +2693,10 @@ function closePomoFull(){
   document.documentElement.classList.remove("pf-lock");
   try{ if(wakeLock){ wakeLock.release(); wakeLock = null; } }catch(e){}
   releaseOrientationLock();                      // 解除方向锁定，避免残留
+  /* 系统栏和屏幕方向都交还给系统：横屏只是沉浸模式里的一个临时功能，
+     退出时不该带着外面的主界面一起横着，也不该留着一条被收起的系统栏。 */
+  setNativeImmersive(false);
+  setNativeLandscape(false);
   /* 如果之前用了原生全屏（横屏按钮），一并退出 */
   if(document.fullscreenElement && document.exitFullscreen){
     document.exitFullscreen().catch(() => {});
@@ -2714,7 +2750,18 @@ function togglePfTheme(){
 }
 
 function toggleNativeFullscreen(){
-  /* 横屏/全屏按钮：优先用原生 API 把页面推成全屏（配合系统横屏即可铺满），不支持则仅靠 CSS */
+  /* 横屏按钮。
+     WebView 里没有 Fullscreen API 的宿主实现 —— 壳不实现 onShowCustomView 时
+     requestFullscreen() 必然失败，跟着 screen.orientation.lock() 也因为
+     「不在全屏」一起失败，所以以前点了完全没反应。转屏本来就是 Activity 的事，
+     壳在的时候直接请原生来；浏览器里才走下面那套 Web 兜底。 */
+  const nat = window.StudyBuddyNative;
+  if(nat && nat.setLandscape){
+    setNativeLandscape(!pfLandscape);
+    toast(pfLandscape ? "已横屏" : "已竖屏");
+    return;
+  }
+  /* ---- 浏览器 / 支持 Fullscreen API 的环境 ---- */
   const el = document.documentElement;
   const inFs = document.fullscreenElement || document.webkitFullscreenElement;
   try{
